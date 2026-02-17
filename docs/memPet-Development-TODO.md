@@ -118,15 +118,23 @@
 
 ## Day 7: 对话系统开发
 
-- [ ] 创建 ChatService 类 `[HGH]`：LLM API 集成；对话上下文管理；流式响应处理
-- [ ] 实现对话功能 `[HGH]`：发送消息；接收响应；上下文注入
-- [ ] 实现记忆增强 `[HGH]`：自动检索相关记忆；记忆注入到 prompt；对话后自动记忆
+- [x] 创建 ChatService 类 `[HGH]`：LLM API 集成；对话上下文管理；流式响应处理
+- [x] 实现对话功能 `[HGH]`：发送消息；接收响应；上下文注入
+- [x] 实现记忆增强 `[HGH]`：自动检索相关记忆；记忆注入到 prompt；对话后自动记忆
+- [x] 创建 IPC 处理器 `[HGH]`：chat:send-message；chat:send-message-stream；chat:update-config；chat:clear-history；chat:get-history
+- [x] 集成到主进程 `[HGH]`：服务初始化；IPC 注册；窗口引用设置
+- [x] 更新 Preload 脚本 `[nil-byte]`：chatAPI 暴露；流式事件监听
+- [x] 更新类型定义 `[nil-byte]`：ElectronAPI.chat 接口
+- [x] 更新 ChatWindow 组件 `[nil-byte]`：集成真实 LLM API；移除临时模拟代码
+- [ ] 实现流式对话 UI `[nil-byte]`：监听流式事件；实时显示响应；打字机效果
 - [ ] 创建 ChatPanel 组件 `[nil-byte]`：对话列表；输入框；发送按钮
 - [ ] 实现对话交互 `[nil-byte]`：消息发送；实时响应；滚动控制
 - [ ] 实现对话功能 `[nil-byte]`：Markdown 渲染；代码高亮；复制功能
 - [ ] 创建 ChatHistory 组件 `[nil-byte]`：会话列表；会话切换；会话删除
 - [ ] 实现历史存储 `[HGH]`：本地持久化；自动保存；数据恢复
 - [ ] 实现历史搜索 `[nil-byte]`：关键词搜索；时间筛选；导出功能
+
+**Day 7 完成度：60%** 🚧
 
 ---
 

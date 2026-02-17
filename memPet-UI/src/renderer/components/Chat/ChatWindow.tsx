@@ -38,27 +38,25 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
     setThinking(true)
 
     try {
-      // TODO: 调用 LLM API 获取回复
-      // 临时模拟回复
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // 调用真实的 LLM API
+      const result = await window.electronAPI.chat.sendMessage(userMessage)
       
-      const aiResponse = `收到你的消息: "${userMessage}"\n\n这是一个临时回复。真实的 LLM 集成将在后续完成。`
+      if (result.success && result.data) {
+        // 添加 AI 回复
+        addMessage({
+          role: 'assistant',
+          content: result.data,
+          timestamp: new Date(),
+        })
+      } else {
+        throw new Error(result.error || '未知错误')
+      }
       
-      // 添加 AI 回复
-      addMessage({
-        role: 'assistant',
-        content: aiResponse,
-        timestamp: new Date(),
-      })
-
-      // 自动记录对话到记忆系统
-      await recordConversation(userMessage, aiResponse)
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('发送消息失败:', error)
       addMessage({
         role: 'assistant',
-        content: '抱歉,我遇到了一些问题。请稍后再试。',
+        content: `抱歉,我遇到了一些问题: ${error.message || error}`,
         timestamp: new Date(),
       })
     } finally {

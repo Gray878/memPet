@@ -49,10 +49,32 @@ const petAPI = {
     ipcRenderer.invoke('pet:check-service'),
 }
 
+// 对话 API
+const chatAPI = {
+  sendMessage: (message: string) =>
+    ipcRenderer.invoke('chat:send-message', message),
+  sendMessageStream: (message: string) =>
+    ipcRenderer.invoke('chat:send-message-stream', message),
+  updateConfig: (config: any) =>
+    ipcRenderer.invoke('chat:update-config', config),
+  clearHistory: () =>
+    ipcRenderer.invoke('chat:clear-history'),
+  getHistory: () =>
+    ipcRenderer.invoke('chat:get-history'),
+}
+
 // 事件监听 API
 const eventsAPI = {
   on: (channel: string, callback: (...args: any[]) => void) => {
-    const validChannels = ['open-chat', 'open-memory', 'open-settings', 'proactive-message']
+    const validChannels = [
+      'open-chat',
+      'open-memory',
+      'open-settings',
+      'proactive-message',
+      'chat-stream-chunk',
+      'chat-stream-complete',
+      'chat-stream-error',
+    ]
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (_event, ...args) => callback(...args))
     }
@@ -67,5 +89,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   system: systemAPI,
   memory: memoryAPI,
   pet: petAPI,
+  chat: chatAPI,
   events: eventsAPI,
 })

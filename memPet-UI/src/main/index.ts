@@ -5,9 +5,11 @@ import { MemUService } from './services/MemUService'
 import { SystemMonitor } from './services/SystemMonitor'
 import { AutoMemoryService } from './services/AutoMemoryService'
 import { ProactiveService } from './services/ProactiveService'
+import { ChatService } from './services/ChatService'
 import { registerMemoryHandlers } from './ipc/memoryHandlers'
 import { registerSystemHandlers } from './ipc/systemHandlers'
 import { registerPetHandlers } from './ipc/petHandlers'
+import { registerChatHandlers } from './ipc/chatHandlers'
 
 // ES Module 环境下定义 __dirname
 const __filename = fileURLToPath(import.meta.url)
@@ -22,6 +24,7 @@ let memUService: MemUService | null = null
 let systemMonitor: SystemMonitor | null = null
 let autoMemoryService: AutoMemoryService | null = null
 let proactiveService: ProactiveService | null = null
+let chatService: ChatService | null = null
 
 // 创建主窗口
 function createWindow() {
@@ -143,10 +146,15 @@ async function initializeServices() {
     proactiveService.start()
     console.log('[Main] 主动推理服务启动成功')
     
-    // 5. 注册 IPC 处理器
+    // 5. 启动对话服务
+    chatService = new ChatService(memUService)
+    console.log('[Main] 对话服务启动成功')
+    
+    // 6. 注册 IPC 处理器
     registerMemoryHandlers(memUService, autoMemoryService)
     registerSystemHandlers(systemMonitor)
     registerPetHandlers(memUService)
+    registerChatHandlers(chatService)
     console.log('[Main] IPC 处理器注册成功')
     
     console.log('[Main] 所有服务初始化完成')
@@ -196,6 +204,11 @@ app.whenReady().then(async () => {
   // 设置主窗口引用到 ProactiveService
   if (mainWindow && proactiveService) {
     proactiveService.setMainWindow(mainWindow)
+  }
+
+  // 设置主窗口引用到 ChatService
+  if (mainWindow && chatService) {
+    chatService.setMainWindow(mainWindow)
   }
 
   app.on('activate', () => {

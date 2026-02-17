@@ -51,6 +51,13 @@ export interface ElectronAPI {
     ) => Promise<{ success: boolean; data?: any; error?: string }>
     checkService: () => Promise<{ success: boolean; data?: { isReady: boolean }; error?: string }>
   }
+  chat: {
+    sendMessage: (message: string) => Promise<{ success: boolean; data?: string; error?: string }>
+    sendMessageStream: (message: string) => Promise<{ success: boolean; error?: string }>
+    updateConfig: (config: any) => Promise<{ success: boolean; error?: string }>
+    clearHistory: () => Promise<{ success: boolean; error?: string }>
+    getHistory: () => Promise<{ success: boolean; data?: any[]; error?: string }>
+  }
   events: {
     on: (channel: string, callback: (...args: any[]) => void) => void
     removeListener: (channel: string, callback: (...args: any[]) => void) => void
