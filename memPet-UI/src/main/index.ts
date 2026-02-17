@@ -3,6 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { MemUService } from './services/MemUService'
 import { SystemMonitor } from './services/SystemMonitor'
+import { AutoMemoryService } from './services/AutoMemoryService'
 import { registerMemoryHandlers } from './ipc/memoryHandlers'
 import { registerSystemHandlers } from './ipc/systemHandlers'
 import { registerPetHandlers } from './ipc/petHandlers'
@@ -18,6 +19,7 @@ let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let memUService: MemUService | null = null
 let systemMonitor: SystemMonitor | null = null
+let autoMemoryService: AutoMemoryService | null = null
 
 // 创建主窗口
 function createWindow() {
@@ -129,8 +131,13 @@ async function initializeServices() {
     systemMonitor.start()
     console.log('[Main] 系统监控启动成功')
     
-    // 3. 注册 IPC 处理器
-    registerMemoryHandlers(memUService)
+    // 3. 启动自动记忆服务
+    autoMemoryService = new AutoMemoryService(memUService, systemMonitor)
+    autoMemoryService.start()
+    console.log('[Main] 自动记忆服务启动成功')
+    
+    // 4. 注册 IPC 处理器
+    registerMemoryHandlers(memUService, autoMemoryService)
     registerSystemHandlers(systemMonitor)
     registerPetHandlers(memUService)
     console.log('[Main] IPC 处理器注册成功')
@@ -151,6 +158,11 @@ async function initializeServices() {
 // 清理服务
 async function cleanupServices() {
   console.log('[Main] 清理服务...')
+  
+  if (autoMemoryService) {
+    autoMemoryService.stop()
+    console.log('[Main] 自动记忆服务已停止')
+  }
   
   if (systemMonitor) {
     await systemMonitor.stop()

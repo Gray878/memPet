@@ -26,6 +26,17 @@ const memoryAPI = {
     ipcRenderer.invoke('memory:batch-observations', observations),
   flushBuffer: () => 
     ipcRenderer.invoke('memory:flush-buffer'),
+  // 自动记忆 API
+  autoRecordConversation: (userMessage: string, aiResponse: string) =>
+    ipcRenderer.invoke('memory:auto-record-conversation', userMessage, aiResponse),
+  autoRecordActivity: (activity: string, metadata?: any) =>
+    ipcRenderer.invoke('memory:auto-record-activity', activity, metadata),
+  getRecent: (limit?: number) =>
+    ipcRenderer.invoke('memory:get-recent', limit),
+  search: (query: string, options?: any) =>
+    ipcRenderer.invoke('memory:search', query, options),
+  getStats: () =>
+    ipcRenderer.invoke('memory:get-stats'),
 }
 
 // 宠物 API

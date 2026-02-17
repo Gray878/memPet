@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useChatStore } from '@renderer/stores/chatStore'
+import { useAutoMemory } from '@renderer/hooks/useMemU'
 import { X, Send } from 'lucide-react'
 
 interface ChatWindowProps {
@@ -11,7 +12,8 @@ interface ChatWindowProps {
  * 特点: 可拖拽,可调整大小,现代化聊天界面
  */
 export default function ChatWindow({ onClose }: ChatWindowProps) {
-  const { messages, addMessage, isThinking } = useChatStore()
+  const { messages, addMessage, setThinking, isThinking } = useChatStore()
+  const { recordConversation } = useAutoMemory()
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -20,18 +22,48 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleSend = () => {
-    if (!input.trim()) return
+  const handleSend = async () => {
+    if (!input.trim() || isThinking) return
 
+    const userMessage = input.trim()
+    
+    // 添加用户消息
     addMessage({
       role: 'user',
-      content: input,
+      content: userMessage,
       timestamp: new Date(),
     })
 
     setInput('')
+    setThinking(true)
 
-    // TODO: 调用 IPC 发送消息到主进程
+    try {
+      // TODO: 调用 LLM API 获取回复
+      // 临时模拟回复
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      const aiResponse = `收到你的消息: "${userMessage}"\n\n这是一个临时回复。真实的 LLM 集成将在后续完成。`
+      
+      // 添加 AI 回复
+      addMessage({
+        role: 'assistant',
+        content: aiResponse,
+        timestamp: new Date(),
+      })
+
+      // 自动记录对话到记忆系统
+      await recordConversation(userMessage, aiResponse)
+      
+    } catch (error) {
+      console.error('发送消息失败:', error)
+      addMessage({
+        role: 'assistant',
+        content: '抱歉,我遇到了一些问题。请稍后再试。',
+        timestamp: new Date(),
+      })
+    } finally {
+      setThinking(false)
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

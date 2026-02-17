@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMemoryStore } from '@renderer/stores/memoryStore'
+import { useAutoMemory } from '@renderer/hooks/useMemU'
 import { X, Search, Filter } from 'lucide-react'
 
 interface MemoryBrowserProps {
@@ -11,14 +12,40 @@ interface MemoryBrowserProps {
  * 特点: 时间轴视图,搜索和筛选功能
  */
 export default function MemoryBrowser({ onClose }: MemoryBrowserProps) {
-  const { memories, searchQuery, filterType, setSearchQuery, setFilterType } = useMemoryStore()
+  const { memories, setMemories, searchQuery, filterType, setSearchQuery, setFilterType } = useMemoryStore()
+  const { getRecentMemories, searchMemories, loading } = useAutoMemory()
   const [showFilter, setShowFilter] = useState(false)
+
+  // 加载最近记忆
+  useEffect(() => {
+    loadMemories()
+  }, [])
+
+  const loadMemories = async () => {
+    const recentMemories = await getRecentMemories(50)
+    setMemories(recentMemories)
+  }
+
+  // 搜索记忆
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query)
+    
+    if (!query.trim()) {
+      await loadMemories()
+      return
+    }
+
+    const results = await searchMemories(query, {
+      limit: 50,
+      type: filterType || undefined,
+    })
+    setMemories(results)
+  }
 
   // 过滤记忆
   const filteredMemories = memories.filter((memory) => {
-    const matchesSearch = memory.content.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesFilter = !filterType || memory.type === filterType
-    return matchesSearch && matchesFilter
+    const matchesFilter = !filterType || memory.type === filterType || memory.metadata?.type === filterType
+    return matchesFilter
   })
 
   return (
@@ -43,9 +70,10 @@ export default function MemoryBrowser({ onClose }: MemoryBrowserProps) {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearch(e.target.value)}
                 placeholder="搜索记忆..."
                 className="input pl-9"
+                disabled={loading}
               />
             </div>
             <button

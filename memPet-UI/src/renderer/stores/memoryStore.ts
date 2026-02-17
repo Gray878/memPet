@@ -14,6 +14,7 @@ interface MemoryState {
   
   // Actions
   addMemory: (memory: Memory) => void
+  setMemories: (memories: Memory[]) => void
   setSearchQuery: (query: string) => void
   setFilterType: (type: string | null) => void
   clearMemories: () => void
@@ -27,6 +28,8 @@ export const useMemoryStore = create<MemoryState>((set) => ({
   addMemory: (memory) => set((state) => ({
     memories: [memory, ...state.memories]
   })),
+  
+  setMemories: (memories) => set({ memories }),
   
   setSearchQuery: (query) => set({ searchQuery: query }),
   

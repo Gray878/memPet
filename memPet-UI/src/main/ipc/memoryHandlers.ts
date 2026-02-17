@@ -1,10 +1,14 @@
 import { ipcMain } from 'electron'
 import { MemUService } from '../services/MemUService'
+import { AutoMemoryService } from '../services/AutoMemoryService'
 
 /**
  * 记忆相关的 IPC 处理器
  */
-export function registerMemoryHandlers(memUService: MemUService) {
+export function registerMemoryHandlers(
+  memUService: MemUService,
+  autoMemoryService: AutoMemoryService
+) {
   // 存储对话记忆
   ipcMain.handle('memory:memorize-conversation', async (_event, content: any[]) => {
     try {
@@ -67,6 +71,62 @@ export function registerMemoryHandlers(memUService: MemUService) {
       return { success: true, data: result }
     } catch (error: any) {
       console.error('[IPC] 刷新缓冲区失败:', error)
+      return { success: false, error: error.message }
+    }
+  })
+}
+
+  // 自动记录对话
+  ipcMain.handle('memory:auto-record-conversation', async (_event, userMessage: string, aiResponse: string) => {
+    try {
+      await autoMemoryService.recordConversation(userMessage, aiResponse)
+      return { success: true }
+    } catch (error: any) {
+      console.error('[IPC] 自动记录对话失败:', error)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // 自动记录活动
+  ipcMain.handle('memory:auto-record-activity', async (_event, activity: string, metadata?: any) => {
+    try {
+      await autoMemoryService.recordActivity(activity, metadata)
+      return { success: true }
+    } catch (error: any) {
+      console.error('[IPC] 自动记录活动失败:', error)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // 获取最近记忆
+  ipcMain.handle('memory:get-recent', async (_event, limit?: number) => {
+    try {
+      const result = await autoMemoryService.getRecentMemories(limit)
+      return { success: true, data: result }
+    } catch (error: any) {
+      console.error('[IPC] 获取最近记忆失败:', error)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // 搜索记忆
+  ipcMain.handle('memory:search', async (_event, query: string, options?: any) => {
+    try {
+      const result = await autoMemoryService.searchMemories(query, options)
+      return { success: true, data: result }
+    } catch (error: any) {
+      console.error('[IPC] 搜索记忆失败:', error)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // 获取统计信息
+  ipcMain.handle('memory:get-stats', async () => {
+    try {
+      const result = autoMemoryService.getStats()
+      return { success: true, data: result }
+    } catch (error: any) {
+      console.error('[IPC] 获取统计信息失败:', error)
       return { success: false, error: error.message }
     }
   })
