@@ -1,36 +1,36 @@
 import { create } from 'zustand'
 
-export interface Memory {
+interface Memory {
   id: string
+  type: 'conversation' | 'observation' | 'action'
   content: string
-  summary?: string
-  category?: string
-  memoryType?: string
-  timestamp: number
+  timestamp: Date
 }
 
 interface MemoryState {
-  // 记忆列表
   memories: Memory[]
-  categories: string[]
-  isLoading: boolean
-
-  // 操作方法
-  setMemories: (memories: Memory[]) => void
+  searchQuery: string
+  filterType: string | null
+  
+  // Actions
   addMemory: (memory: Memory) => void
-  setCategories: (categories: string[]) => void
-  setLoading: (isLoading: boolean) => void
+  setSearchQuery: (query: string) => void
+  setFilterType: (type: string | null) => void
+  clearMemories: () => void
 }
 
-export const useMemoryStore = create<MemoryState>(set => ({
-  // 初始状态
+export const useMemoryStore = create<MemoryState>((set) => ({
   memories: [],
-  categories: [],
-  isLoading: false,
-
-  // 操作方法
-  setMemories: memories => set({ memories }),
-  addMemory: memory => set(state => ({ memories: [...state.memories, memory] })),
-  setCategories: categories => set({ categories }),
-  setLoading: isLoading => set({ isLoading }),
+  searchQuery: '',
+  filterType: null,
+  
+  addMemory: (memory) => set((state) => ({
+    memories: [memory, ...state.memories]
+  })),
+  
+  setSearchQuery: (query) => set({ searchQuery: query }),
+  
+  setFilterType: (type) => set({ filterType: type }),
+  
+  clearMemories: () => set({ memories: [] }),
 }))

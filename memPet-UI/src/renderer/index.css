@@ -2,36 +2,150 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 全局样式 */
+:root {
+  --color-primary: #3B82F6;
+  --color-text: #1F2937;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary: #9CA3AF;
+  --color-border: #E5E7EB;
+  --color-background: #FFFFFF;
+  --color-background-secondary: #F9FAFB;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: var(--color-text);
+  background: var(--color-background);
+  font-size: 14px;
+  line-height: 1.6;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+* {
+  box-sizing: border-box;
 }
 
-/* 自定义滚动条 */
+/* 自定义滚动条 - 简洁风格 */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+  background: var(--color-background-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  background: var(--color-border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--color-text-tertiary);
+}
+
+/* 禁用选择高亮 (宠物窗口) */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* 拖拽区域 */
+.draggable {
+  -webkit-app-region: drag;
+}
+
+.non-draggable {
+  -webkit-app-region: no-drag;
+}
+
+/* 动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 200ms ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 200ms ease-out;
+}
+
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+/* 按钮基础样式 */
+.btn {
+  @apply px-lg py-sm rounded-button transition-all duration-micro cursor-pointer;
+  @apply text-sm font-medium;
+  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+}
+
+.btn-primary {
+  @apply bg-primary text-white;
+  @apply hover:bg-blue-600 active:bg-blue-700;
+}
+
+.btn-secondary {
+  @apply border border-border bg-transparent text-text;
+  @apply hover:bg-background-secondary active:bg-gray-100;
+}
+
+.btn-text {
+  @apply bg-transparent text-primary;
+  @apply hover:bg-background-secondary active:bg-gray-100;
+}
+
+/* 输入框基础样式 */
+.input {
+  @apply w-full px-md py-sm rounded-input border border-border;
+  @apply text-sm text-text placeholder-text-tertiary;
+  @apply focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary;
+  @apply transition-colors duration-micro;
+}
+
+/* 卡片基础样式 */
+.card {
+  @apply bg-background rounded-card border border-border;
+  @apply p-lg;
+}
+
+.card-hover {
+  @apply transition-all duration-state cursor-pointer;
+  @apply hover:shadow-card hover:border-gray-300;
 }

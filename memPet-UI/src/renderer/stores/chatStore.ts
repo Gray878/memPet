@@ -1,43 +1,30 @@
 import { create } from 'zustand'
 
-export interface Message {
-  id: string
-  role: 'user' | 'assistant' | 'system'
+interface Message {
+  role: 'user' | 'assistant'
   content: string
-  timestamp: number
-  isProactive?: boolean
+  timestamp: Date
 }
 
 interface ChatState {
-  // 消息列表
   messages: Message[]
-  isLoading: boolean
-
-  // 操作方法
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
+  isThinking: boolean
+  
+  // Actions
+  addMessage: (message: Message) => void
+  setThinking: (thinking: boolean) => void
   clearMessages: () => void
-  setLoading: (isLoading: boolean) => void
 }
 
-export const useChatStore = create<ChatState>(set => ({
-  // 初始状态
+export const useChatStore = create<ChatState>((set) => ({
   messages: [],
-  isLoading: false,
-
-  // 操作方法
-  addMessage: message =>
-    set(state => ({
-      messages: [
-        ...state.messages,
-        {
-          ...message,
-          id: Date.now().toString(),
-          timestamp: Date.now(),
-        },
-      ],
-    })),
-
+  isThinking: false,
+  
+  addMessage: (message) => set((state) => ({
+    messages: [...state.messages, message]
+  })),
+  
+  setThinking: (thinking) => set({ isThinking: thinking }),
+  
   clearMessages: () => set({ messages: [] }),
-
-  setLoading: isLoading => set({ isLoading }),
 }))

@@ -19,7 +19,13 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron/main',
             rollupOptions: {
-              external: ['electron']
+              external: [
+                'electron',
+                'mock-aws-s3',
+                'aws-sdk', 
+                'nock',
+                /^@mapbox\/.*/
+              ]
             }
           }
         }
@@ -47,6 +53,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173
+    port: 5173,
+    open: false // 禁止自动打开浏览器
   }
 })

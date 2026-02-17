@@ -1,28 +1,60 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-// 暴露安全的 API 给渲染进程
-contextBridge.exposeInMainWorld('electron', {
-  // 记忆相关 API
-  memorize: (data: any) => ipcRenderer.invoke('memorize', data),
-  retrieve: (query: string) => ipcRenderer.invoke('retrieve', query),
-  getCategories: () => ipcRenderer.invoke('get-categories'),
+/**
+ * Preload 脚本 - 暴露安全的 API 给渲染进程
+ */
 
-  // 系统监控 API
-  getUserContext: () => ipcRenderer.invoke('get-user-context'),
-  getActiveWindow: () => ipcRenderer.invoke('get-active-window'),
+// 系统监控 API
+const systemAPI = {
+  getContext: () => ipcRenderer.invoke('system:get-context'),
+  getWorkTime: () => ipcRenderer.invoke('system:get-work-time'),
+  getCurrentApp: () => ipcRenderer.invoke('system:get-current-app'),
+  resetWorkTime: () => ipcRenderer.invoke('system:reset-work-time'),
+}
 
-  // 宠物行为 API
-  setPetBehavior: (behavior: string) => ipcRenderer.invoke('set-pet-behavior', behavior),
+// 记忆管理 API
+const memoryAPI = {
+  memorizeConversation: (content: any[]) => 
+    ipcRenderer.invoke('memory:memorize-conversation', content),
+  memorizeObservation: (observation: any) => 
+    ipcRenderer.invoke('memory:memorize-observation', observation),
+  retrieveConversation: (query: string, limit?: number) => 
+    ipcRenderer.invoke('memory:retrieve-conversation', query, limit),
+  retrieveProactive: (context: any, limit?: number) => 
+    ipcRenderer.invoke('memory:retrieve-proactive', context, limit),
+  batchObservations: (observations: any[]) => 
+    ipcRenderer.invoke('memory:batch-observations', observations),
+  flushBuffer: () => 
+    ipcRenderer.invoke('memory:flush-buffer'),
+}
 
-  // 设置相关 API
-  getSettings: () => ipcRenderer.invoke('get-settings'),
-  updateSettings: (settings: any) => ipcRenderer.invoke('update-settings', settings),
+// 宠物 API
+const petAPI = {
+  proactiveAnalyze: (context: any) => 
+    ipcRenderer.invoke('pet:proactive-analyze', context),
+  proactiveGenerate: (suggestion: any, context: any, personality?: string, limit?: number) => 
+    ipcRenderer.invoke('pet:proactive-generate', suggestion, context, personality, limit),
+  checkService: () => 
+    ipcRenderer.invoke('pet:check-service'),
+}
 
-  // 事件监听
+// 事件监听 API
+const eventsAPI = {
   on: (channel: string, callback: (...args: any[]) => void) => {
-    ipcRenderer.on(channel, (_event, ...args) => callback(...args))
+    const validChannels = ['open-chat', 'open-memory', 'open-settings', 'proactive-message']
+    if (validChannels.includes(channel)) {
+      ipcRenderer.on(channel, (_event, ...args) => callback(...args))
+    }
   },
-  off: (channel: string, callback: (...args: any[]) => void) => {
+  removeListener: (channel: string, callback: (...args: any[]) => void) => {
     ipcRenderer.removeListener(channel, callback)
   },
+}
+
+// 暴露 API 到渲染进程
+contextBridge.exposeInMainWorld('electronAPI', {
+  system: systemAPI,
+  memory: memoryAPI,
+  pet: petAPI,
+  events: eventsAPI,
 })
