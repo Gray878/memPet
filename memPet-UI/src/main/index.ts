@@ -1,5 +1,10 @@
 import { app, BrowserWindow } from 'electron'
 import path from 'path'
+import { fileURLToPath } from 'url'
+
+// ES Module 环境下定义 __dirname
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // 开发环境标识
 const isDev = process.env.NODE_ENV === 'development'
