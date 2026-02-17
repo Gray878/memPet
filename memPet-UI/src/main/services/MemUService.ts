@@ -173,4 +173,16 @@ export class MemUService {
     })
     return response.data
   }
+
+  async getCooldownStatus(): Promise<any> {
+    const response = await this.client.get('/proactive/cooldown')
+    return response.data
+  }
+
+  async resetCooldown(type?: string): Promise<any> {
+    const response = await this.client.post('/proactive/cooldown/reset', {
+      type,
+    })
+    return response.data
+  }
 }

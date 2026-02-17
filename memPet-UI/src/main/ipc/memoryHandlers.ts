@@ -74,7 +74,6 @@ export function registerMemoryHandlers(
       return { success: false, error: error.message }
     }
   })
-}
 
   // 自动记录对话
   ipcMain.handle('memory:auto-record-conversation', async (_event, userMessage: string, aiResponse: string) => {

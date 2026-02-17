@@ -21,9 +21,7 @@ export default defineConfig({
             rollupOptions: {
               external: [
                 'electron',
-                'mock-aws-s3',
-                'aws-sdk', 
-                'nock',
+                'active-win',
                 /^@mapbox\/.*/
               ]
             }

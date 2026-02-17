@@ -88,7 +88,9 @@ export class SystemMonitor {
       
       this.totalWorkTime += this.MONITOR_INTERVAL
     } catch (error) {
-      console.error('[SystemMonitor] 检查活动失败:', error)
+      // active-win 在某些环境下可能失败,使用降级方案
+      console.warn('[SystemMonitor] 无法获取活动窗口,使用降级模式:', error)
+      this.handleIdle()
     }
   }
 

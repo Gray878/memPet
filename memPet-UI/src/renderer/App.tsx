@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { usePetStore } from '@renderer/stores/petStore'
+import { useProactiveStore } from '@renderer/stores/proactiveStore'
 import PetWindow from '@renderer/components/Pet/PetWindow'
 import SpeechBubble from '@renderer/components/Pet/SpeechBubble'
 import StatusPanel from '@renderer/components/Pet/StatusPanel'
 import ChatWindow from '@renderer/components/Chat/ChatWindow'
 import MemoryBrowser from '@renderer/components/Memory/MemoryBrowser'
 import SettingsWindow from '@renderer/components/Settings/SettingsWindow'
+import ProactiveMessage from '@renderer/components/Proactive/ProactiveMessage'
 import DevPanel from '@renderer/components/Dev/DevPanel'
 
 const isDev = import.meta.env.DEV
@@ -26,6 +28,8 @@ function App() {
     showSpeech,
   } = usePetStore()
 
+  const { currentMessage, setCurrentMessage, clearCurrentMessage, isEnabled } = useProactiveStore()
+
   const [showChat, setShowChat] = useState(false)
   const [showMemory, setShowMemory] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -35,6 +39,16 @@ function App() {
     const handleOpenChat = () => setShowChat(true)
     const handleOpenMemory = () => setShowMemory(true)
     const handleOpenSettings = () => setShowSettings(true)
+    
+    // 监听主动推理消息
+    const handleProactiveMessage = (_event: any, data: any) => {
+      if (isEnabled) {
+        setCurrentMessage({
+          id: Date.now().toString(),
+          ...data,
+        })
+      }
+    }
 
     // @ts-ignore - electron API
     window.electron?.ipcRenderer?.on('open-chat', handleOpenChat)
@@ -42,6 +56,8 @@ function App() {
     window.electron?.ipcRenderer?.on('open-memory', handleOpenMemory)
     // @ts-ignore
     window.electron?.ipcRenderer?.on('open-settings', handleOpenSettings)
+    // @ts-ignore
+    window.electron?.ipcRenderer?.on('proactive-message', handleProactiveMessage)
 
     return () => {
       // @ts-ignore
@@ -50,8 +66,10 @@ function App() {
       window.electron?.ipcRenderer?.removeListener('open-memory', handleOpenMemory)
       // @ts-ignore
       window.electron?.ipcRenderer?.removeListener('open-settings', handleOpenSettings)
+      // @ts-ignore
+      window.electron?.ipcRenderer?.removeListener('proactive-message', handleProactiveMessage)
     }
-  }, [])
+  }, [isEnabled, setCurrentMessage])
 
   // 首次启动欢迎消息
   useEffect(() => {
@@ -142,6 +160,18 @@ function App() {
 
       {/* Layer 5: 设置窗口 */}
       {showSettings && <SettingsWindow onClose={() => setShowSettings(false)} />}
+
+      {/* Layer 6: 主动推理消息 */}
+      {currentMessage && (
+        <ProactiveMessage
+          data={currentMessage}
+          onClose={clearCurrentMessage}
+          onAction={() => {
+            // TODO: 执行建议的操作
+            console.log('执行操作:', currentMessage.suggestion.action)
+          }}
+        />
+      )}
 
       {/* 开发工具面板 */}
       {isDev && <DevPanel />}

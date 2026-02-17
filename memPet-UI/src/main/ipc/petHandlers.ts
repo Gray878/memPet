@@ -37,4 +37,26 @@ export function registerPetHandlers(memUService: MemUService) {
       return { success: false, error: error.message }
     }
   })
+
+  // 获取冷却状态
+  ipcMain.handle('pet:get-cooldown', async () => {
+    try {
+      const result = await memUService.getCooldownStatus()
+      return { success: true, data: result }
+    } catch (error: any) {
+      console.error('[IPC] 获取冷却状态失败:', error)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // 重置冷却时间
+  ipcMain.handle('pet:reset-cooldown', async (_event, type?: string) => {
+    try {
+      const result = await memUService.resetCooldown(type)
+      return { success: true, data: result }
+    } catch (error: any) {
+      console.error('[IPC] 重置冷却时间失败:', error)
+      return { success: false, error: error.message }
+    }
+  })
 }

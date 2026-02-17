@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import { MemUService } from './services/MemUService'
 import { SystemMonitor } from './services/SystemMonitor'
 import { AutoMemoryService } from './services/AutoMemoryService'
+import { ProactiveService } from './services/ProactiveService'
 import { registerMemoryHandlers } from './ipc/memoryHandlers'
 import { registerSystemHandlers } from './ipc/systemHandlers'
 import { registerPetHandlers } from './ipc/petHandlers'
@@ -20,6 +21,7 @@ let tray: Tray | null = null
 let memUService: MemUService | null = null
 let systemMonitor: SystemMonitor | null = null
 let autoMemoryService: AutoMemoryService | null = null
+let proactiveService: ProactiveService | null = null
 
 // 创建主窗口
 function createWindow() {
@@ -136,7 +138,12 @@ async function initializeServices() {
     autoMemoryService.start()
     console.log('[Main] 自动记忆服务启动成功')
     
-    // 4. 注册 IPC 处理器
+    // 4. 启动主动推理服务
+    proactiveService = new ProactiveService(memUService, systemMonitor)
+    proactiveService.start()
+    console.log('[Main] 主动推理服务启动成功')
+    
+    // 5. 注册 IPC 处理器
     registerMemoryHandlers(memUService, autoMemoryService)
     registerSystemHandlers(systemMonitor)
     registerPetHandlers(memUService)
@@ -159,6 +166,11 @@ async function initializeServices() {
 async function cleanupServices() {
   console.log('[Main] 清理服务...')
   
+  if (proactiveService) {
+    proactiveService.stop()
+    console.log('[Main] 主动推理服务已停止')
+  }
+  
   if (autoMemoryService) {
     autoMemoryService.stop()
     console.log('[Main] 自动记忆服务已停止')
@@ -180,6 +192,11 @@ app.whenReady().then(async () => {
   await initializeServices()
   createWindow()
   createTray()
+
+  // 设置主窗口引用到 ProactiveService
+  if (mainWindow && proactiveService) {
+    proactiveService.setMainWindow(mainWindow)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
