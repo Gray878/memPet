@@ -1,61 +1,126 @@
-import { useState } from 'react'
-import { X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { 
+  X, Save, RotateCcw, Download, Upload,
+  Settings, Cpu, Smile, Activity, Server, Database, Info
+} from 'lucide-react'
+import GeneralSettings from './tabs/GeneralSettings'
+import AISettings from './tabs/AISettings'
+import PersonalitySettings from './tabs/PersonalitySettings'
+import BehaviorSettings from './tabs/BehaviorSettings'
+import BackendSettings from './tabs/BackendSettings'
+import DataSettings from './tabs/DataSettings'
+import AboutSettings from './tabs/AboutSettings'
 
 interface SettingsWindowProps {
   onClose: () => void
 }
 
-type SettingsTab =
-  | 'general'
-  | 'ai'
-  | 'personality'
-  | 'behavior'
-  | 'skills'
-  | 'backend'
-  | 'mcp'
-  | 'data'
-  | 'about'
+type SettingsTab = 'general' | 'ai' | 'personality' | 'behavior' | 'backend' | 'data' | 'about'
 
-/**
- * 设置窗口 - Layer 5 模态窗口
- * 特点: 固定尺寸,左侧导航+右侧内容
- */
+const TabIcon = ({ icon: Icon, active }: { icon: any; active: boolean }) => (
+  <Icon size={18} className={active ? 'text-white' : 'text-slate-600'} />
+)
+
 export default function SettingsWindow({ onClose }: SettingsWindowProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general')
+  const [config, setConfig] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
-  const tabs: { id: SettingsTab; label: string }[] = [
-    { id: 'general', label: '通用' },
-    { id: 'ai', label: 'AI 模型' },
-    { id: 'personality', label: '性格' },
-    { id: 'behavior', label: '行为' },
-    { id: 'skills', label: 'Skills' },
-    { id: 'backend', label: '后台服务' },
-    { id: 'mcp', label: 'MCP' },
-    { id: 'data', label: '数据' },
-    { id: 'about', label: '关于' },
+  const tabs: { id: SettingsTab; label: string; icon: any }[] = [
+    { id: 'general', label: '通用', icon: Settings },
+    { id: 'ai', label: 'AI 模型', icon: Cpu },
+    { id: 'personality', label: '性格', icon: Smile },
+    { id: 'behavior', label: '行为', icon: Activity },
+    { id: 'backend', label: '后台服务', icon: Server },
+    { id: 'data', label: '数据', icon: Database },
+    { id: 'about', label: '关于', icon: Info },
   ]
 
+  useEffect(() => {
+    loadConfig()
+  }, [])
+
+  const loadConfig = async () => {
+    setLoading(true)
+    const result = await window.electronAPI.settings.getConfig()
+    if (result.success) {
+      setConfig(result.data)
+    }
+    setLoading(false)
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    const result = await window.electronAPI.settings.updateConfig(config)
+    if (result.success) {
+      alert('设置已保存')
+    } else {
+      alert(`保存失败: ${result.error}`)
+    }
+    setSaving(false)
+  }
+
+  const handleReset = async () => {
+    if (!confirm('确定要重置所有设置吗?')) return
+    const result = await window.electronAPI.settings.resetConfig()
+    if (result.success) {
+      await loadConfig()
+      alert('设置已重置')
+    }
+  }
+
+  const handleExport = async () => {
+    const result = await window.electronAPI.settings.exportConfig()
+    if (result.success) {
+      alert(`配置已导出到: ${result.path}`)
+    }
+  }
+
+  const handleImport = async () => {
+    const result = await window.electronAPI.settings.importConfig()
+    if (result.success) {
+      await loadConfig()
+      alert('配置已导入')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+        <div className="text-white">加载中...</div>
+      </div>
+    )
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 animate-fade-in">
-      <div className="w-[800px] h-[600px] bg-white rounded-card shadow-modal flex overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm animate-fade-in">
+      <div className="w-[900px] h-[650px] bg-gradient-to-br from-slate-50 to-blue-50/30 rounded-2xl shadow-2xl flex overflow-hidden border border-white/50">
         {/* 左侧导航 */}
-        <div className="w-[180px] bg-background-secondary border-r border-border p-md">
-          <div className="space-y-xs">
+        <div className="w-[200px] bg-white/60 backdrop-blur-md border-r border-slate-200/50 p-4">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              memPet 设置
+            </h2>
+          </div>
+          
+          <div className="space-y-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`
-                  w-full text-left px-md py-sm rounded-button text-sm
-                  transition-colors duration-micro
+                  w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium
+                  transition-all duration-200 flex items-center gap-3
                   ${
                     activeTab === tab.id
-                      ? 'bg-primary text-white'
-                      : 'text-text hover:bg-white'
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/30'
+                      : 'text-slate-700 hover:bg-white/80 hover:shadow-sm'
                   }
                 `}
               >
-                {tab.label}
+                <TabIcon icon={tab.icon} active={activeTab === tab.id} />
+                <span>{tab.label}</span>
               </button>
             ))}
           </div>
@@ -64,232 +129,84 @@ export default function SettingsWindow({ onClose }: SettingsWindowProps) {
         {/* 右侧内容 */}
         <div className="flex-1 flex flex-col">
           {/* 标题栏 */}
-          <div className="flex items-center justify-between px-lg py-md border-b border-border">
-            <h2 className="text-base font-medium text-text">memPet 设置</h2>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/50 bg-white/40 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              {(() => {
+                const currentTab = tabs.find(t => t.id === activeTab)
+                const Icon = currentTab?.icon
+                return Icon ? <Icon size={20} className="text-slate-700" /> : null
+              })()}
+              <h3 className="text-base font-semibold text-slate-800">
+                {tabs.find(t => t.id === activeTab)?.label}
+              </h3>
+            </div>
             <button
               onClick={onClose}
-              className="p-1 hover:bg-background-secondary rounded transition-colors duration-micro"
+              className="p-2 hover:bg-slate-200/50 rounded-lg transition-colors"
             >
-              <X size={18} className="text-text-secondary" />
+              <X size={18} className="text-slate-600" />
             </button>
           </div>
 
           {/* 内容区域 */}
-          <div className="flex-1 overflow-y-auto p-lg">
-            {activeTab === 'general' && <GeneralSettings />}
-            {activeTab === 'ai' && <AISettings />}
-            {activeTab === 'personality' && <PersonalitySettings />}
-            {activeTab === 'behavior' && <BehaviorSettings />}
-            {activeTab === 'skills' && <SkillsSettings />}
-            {activeTab === 'backend' && <BackendSettings />}
-            {activeTab === 'mcp' && <MCPSettings />}
-            {activeTab === 'data' && <DataSettings />}
-            {activeTab === 'about' && <AboutSettings />}
+          <div className="flex-1 overflow-y-auto p-6 settings-content">
+            {config && (
+              <>
+                {activeTab === 'general' && <GeneralSettings config={config} setConfig={setConfig} />}
+                {activeTab === 'ai' && <AISettings config={config} setConfig={setConfig} />}
+                {activeTab === 'personality' && <PersonalitySettings config={config} setConfig={setConfig} />}
+                {activeTab === 'behavior' && <BehaviorSettings config={config} setConfig={setConfig} />}
+                {activeTab === 'backend' && <BackendSettings />}
+                {activeTab === 'data' && <DataSettings config={config} setConfig={setConfig} />}
+                {activeTab === 'about' && <AboutSettings />}
+              </>
+            )}
           </div>
 
           {/* 底部按钮 */}
-          <div className="border-t border-border px-lg py-md flex justify-end gap-sm">
-            <button onClick={onClose} className="btn btn-secondary">
-              取消
-            </button>
-            <button className="btn btn-primary">保存设置</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/**
- * 通用设置
- */
-function GeneralSettings() {
-  return (
-    <div className="space-y-xl">
-      <div>
-        <h3 className="text-sm font-medium text-text mb-md">通用设置</h3>
-        
-        <div className="space-y-lg">
-          <div>
-            <label className="block text-sm text-text-secondary mb-xs">宠物名称</label>
-            <input type="text" defaultValue="小U" className="input" />
-          </div>
-
-          <div>
-            <label className="block text-sm text-text-secondary mb-xs">语言</label>
-            <select className="input">
-              <option>简体中文</option>
-              <option>English</option>
-            </select>
-          </div>
-
-          <div className="space-y-sm">
-            <label className="flex items-center gap-sm cursor-pointer">
-              <input type="checkbox" className="w-4 h-4" />
-              <span className="text-sm text-text">开机自启动</span>
-            </label>
-            <label className="flex items-center gap-sm cursor-pointer">
-              <input type="checkbox" defaultChecked className="w-4 h-4" />
-              <span className="text-sm text-text">窗口置顶</span>
-            </label>
-          </div>
-
-          <div>
-            <label className="block text-sm text-text-secondary mb-xs">透明度</label>
-            <input type="range" min="50" max="100" defaultValue="90" className="w-full" />
-            <div className="text-xs text-text-tertiary mt-xs">90%</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/**
- * AI 模型设置
- */
-function AISettings() {
-  return (
-    <div className="space-y-xl">
-      <div>
-        <h3 className="text-sm font-medium text-text mb-md">AI 模型配置</h3>
-        
-        <div className="space-y-lg">
-          <div>
-            <label className="block text-sm text-text-secondary mb-xs">
-              LLM 提供商
-            </label>
-            <select className="input">
-              <option>Claude (Anthropic)</option>
-              <option>OpenAI</option>
-              <option>MiniMax</option>
-              <option>自定义 API</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm text-text-secondary mb-xs">API 密钥</label>
-            <input type="password" placeholder="sk-ant-..." className="input" />
-            <div className="flex gap-sm mt-sm">
-              <button className="btn btn-secondary text-xs">显示</button>
-              <button className="btn btn-secondary text-xs">测试连接</button>
+          <div className="border-t border-slate-200/50 px-6 py-4 flex justify-between bg-white/40 backdrop-blur-sm">
+            <div className="flex gap-2">
+              <button
+                onClick={handleExport}
+                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-white/80 rounded-lg transition-all flex items-center gap-2 border border-slate-200"
+              >
+                <Download size={16} />
+                导出
+              </button>
+              <button
+                onClick={handleImport}
+                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-white/80 rounded-lg transition-all flex items-center gap-2 border border-slate-200"
+              >
+                <Upload size={16} />
+                导入
+              </button>
+              <button
+                onClick={handleReset}
+                className="px-4 py-2 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-lg transition-all flex items-center gap-2 border border-orange-200"
+              >
+                <RotateCcw size={16} />
+                重置
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-white/80 rounded-lg transition-all border border-slate-200"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-blue-500/30 disabled:opacity-50"
+              >
+                <Save size={16} />
+                {saving ? '保存中...' : '保存设置'}
+              </button>
             </div>
           </div>
-
-          <div>
-            <label className="block text-sm text-text-secondary mb-xs">模型名称</label>
-            <input type="text" defaultValue="claude-sonnet-4-5" className="input" />
-          </div>
-
-          <div>
-            <label className="block text-sm text-text-secondary mb-xs">
-              温度 (Temperature)
-            </label>
-            <input type="range" min="0" max="100" defaultValue="70" className="w-full" />
-            <div className="text-xs text-text-tertiary mt-xs">0.7</div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-text-secondary mb-xs">最大 Token 数</label>
-            <input type="number" defaultValue="4096" className="input" />
-          </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-/**
- * 性格设置
- */
-function PersonalitySettings() {
-  const personalities = [
-    { id: 'friendly', label: '友好型', description: '温和友善,总是关心你' },
-    { id: 'energetic', label: '活力型', description: '充满活力和热情' },
-    { id: 'professional', label: '专业型', description: '专业简洁,重视效率' },
-    { id: 'tsundere', label: '傲娇型', description: '表面高冷,内心温柔' },
-  ]
-
-  return (
-    <div className="space-y-xl">
-      <div>
-        <h3 className="text-sm font-medium text-text mb-md">性格配置</h3>
-        
-        <div className="space-y-lg">
-          <div>
-            <label className="block text-sm text-text-secondary mb-sm">选择预设性格</label>
-            <div className="grid grid-cols-2 gap-sm">
-              {personalities.map((p) => (
-                <button
-                  key={p.id}
-                  className="card card-hover text-left"
-                >
-                  <div className="font-medium text-sm text-text mb-xs">{p.label}</div>
-                  <div className="text-xs text-text-secondary">{p.description}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-text-secondary mb-xs">
-              Emoji 使用频率
-            </label>
-            <input type="range" min="0" max="100" defaultValue="50" className="w-full" />
-            <div className="text-xs text-text-tertiary mt-xs">50%</div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-text-secondary mb-xs">主动性级别</label>
-            <input type="range" min="0" max="100" defaultValue="70" className="w-full" />
-            <div className="text-xs text-text-tertiary mt-xs">70%</div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-text-secondary mb-xs">正式程度</label>
-            <input type="range" min="0" max="100" defaultValue="30" className="w-full" />
-            <div className="text-xs text-text-tertiary mt-xs">30%</div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-text-secondary mb-xs">
-              自定义特质 (用逗号分隔)
-            </label>
-            <input type="text" placeholder="幽默, 耐心, 专业" className="input" />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// 其他设置面板的占位组件
-function BehaviorSettings() {
-  return <div className="text-text-secondary">行为设置 - 开发中</div>
-}
-
-function SkillsSettings() {
-  return <div className="text-text-secondary">Skills 管理 - 开发中</div>
-}
-
-function BackendSettings() {
-  return <div className="text-text-secondary">后台服务配置 - 开发中</div>
-}
-
-function MCPSettings() {
-  return <div className="text-text-secondary">MCP 配置 - 开发中</div>
-}
-
-function DataSettings() {
-  return <div className="text-text-secondary">数据管理 - 开发中</div>
-}
-
-function AboutSettings() {
-  return (
-    <div className="text-center space-y-md">
-      <h3 className="text-lg font-medium text-text">memPet</h3>
-      <p className="text-sm text-text-secondary">版本 0.1.0</p>
-      <p className="text-xs text-text-tertiary">智能桌面宠物应用</p>
     </div>
   )
 }

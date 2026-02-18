@@ -63,6 +63,21 @@ const chatAPI = {
     ipcRenderer.invoke('chat:get-history'),
 }
 
+// 设置 API
+const settingsAPI = {
+  getConfig: () => ipcRenderer.invoke('settings:get-config'),
+  updateConfig: (updates: any) => ipcRenderer.invoke('settings:update-config', updates),
+  resetConfig: () => ipcRenderer.invoke('settings:reset-config'),
+  exportConfig: () => ipcRenderer.invoke('settings:export-config'),
+  importConfig: () => ipcRenderer.invoke('settings:import-config'),
+  testAPI: (config: any) => ipcRenderer.invoke('settings:test-api', config),
+  getServerStatus: () => ipcRenderer.invoke('settings:get-server-status'),
+  restartServer: () => ipcRenderer.invoke('settings:restart-server'),
+  getLogs: (lines?: number) => ipcRenderer.invoke('settings:get-logs', lines),
+  clearLogs: () => ipcRenderer.invoke('settings:clear-logs'),
+  selectFolder: (title: string) => ipcRenderer.invoke('settings:select-folder', title),
+}
+
 // 事件监听 API
 const eventsAPI = {
   on: (channel: string, callback: (...args: any[]) => void) => {
@@ -90,6 +105,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   memory: memoryAPI,
   pet: petAPI,
   chat: chatAPI,
+  settings: settingsAPI,
   events: eventsAPI,
 })
 
@@ -100,5 +116,6 @@ console.log('[Preload] electronAPI exposed with:', {
   memory: !!memoryAPI,
   pet: !!petAPI,
   chat: !!chatAPI,
+  settings: !!settingsAPI,
   events: !!eventsAPI,
 })
