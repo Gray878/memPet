@@ -12,9 +12,10 @@ interface ChatWindowProps {
  * 特点: 可拖拽,可调整大小,现代化聊天界面
  */
 export default function ChatWindow({ onClose }: ChatWindowProps) {
-  const { messages, addMessage, setThinking, isThinking } = useChatStore()
+  const { messages, addMessage, updateLastMessage, setLastMessageStreaming, setThinking, isThinking } = useChatStore()
   const { recordConversation } = useAutoMemory()
   const [input, setInput] = useState('')
+  const [useStream, setUseStream] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // 自动滚动到底部
@@ -22,8 +23,58 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // 监听流式事件
+  useEffect(() => {
+    // 检查 electronAPI 是否可用
+    if (!window.electronAPI?.events) {
+      console.warn('[ChatWindow] electronAPI.events 不可用')
+      return
+    }
+
+    const handleStreamChunk = (chunk: string) => {
+      updateLastMessage(chunk)
+    }
+
+    const handleStreamComplete = () => {
+      setLastMessageStreaming(false)
+      setThinking(false)
+    }
+
+    const handleStreamError = (error: string) => {
+      console.error('流式对话错误:', error)
+      setLastMessageStreaming(false)
+      setThinking(false)
+      addMessage({
+        role: 'assistant',
+        content: `抱歉,发生了错误: ${error}`,
+        timestamp: new Date(),
+      })
+    }
+
+    window.electronAPI.events.on('chat-stream-chunk', handleStreamChunk)
+    window.electronAPI.events.on('chat-stream-complete', handleStreamComplete)
+    window.electronAPI.events.on('chat-stream-error', handleStreamError)
+
+    return () => {
+      window.electronAPI.events.removeListener('chat-stream-chunk', handleStreamChunk)
+      window.electronAPI.events.removeListener('chat-stream-complete', handleStreamComplete)
+      window.electronAPI.events.removeListener('chat-stream-error', handleStreamError)
+    }
+  }, [updateLastMessage, setLastMessageStreaming, setThinking, addMessage])
+
   const handleSend = async () => {
     if (!input.trim() || isThinking) return
+
+    // 检查 API 是否可用
+    if (!window.electronAPI?.chat) {
+      console.error('[ChatWindow] electronAPI.chat 不可用')
+      addMessage({
+        role: 'assistant',
+        content: '抱歉,对话服务暂时不可用。请稍后再试。',
+        timestamp: new Date(),
+      })
+      return
+    }
 
     const userMessage = input.trim()
     
@@ -38,18 +89,36 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
     setThinking(true)
 
     try {
-      // 调用真实的 LLM API
-      const result = await window.electronAPI.chat.sendMessage(userMessage)
-      
-      if (result.success && result.data) {
-        // 添加 AI 回复
+      if (useStream) {
+        // 流式对话
+        // 先添加一个空的 AI 消息
         addMessage({
           role: 'assistant',
-          content: result.data,
+          content: '',
           timestamp: new Date(),
+          isStreaming: true,
         })
+
+        const result = await window.electronAPI.chat.sendMessageStream(userMessage)
+        
+        if (!result.success) {
+          throw new Error(result.error || '流式对话失败')
+        }
+        // 流式完成后会通过事件处理
       } else {
-        throw new Error(result.error || '未知错误')
+        // 非流式对话
+        const result = await window.electronAPI.chat.sendMessage(userMessage)
+        
+        if (result.success && result.data) {
+          addMessage({
+            role: 'assistant',
+            content: result.data,
+            timestamp: new Date(),
+          })
+          setThinking(false)
+        } else {
+          throw new Error(result.error || '未知错误')
+        }
       }
       
     } catch (error: any) {
@@ -59,7 +128,6 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
         content: `抱歉,我遇到了一些问题: ${error.message || error}`,
         timestamp: new Date(),
       })
-    } finally {
       setThinking(false)
     }
   }
@@ -77,12 +145,25 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
         {/* 标题栏 */}
         <div className="flex items-center justify-between px-lg py-md border-b border-border draggable">
           <h2 className="text-base font-medium text-text">memPet 对话</h2>
-          <button
-            onClick={onClose}
-            className="non-draggable p-1 hover:bg-background-secondary rounded transition-colors duration-micro"
-          >
-            <X size={18} className="text-text-secondary" />
-          </button>
+          <div className="flex items-center gap-sm non-draggable">
+            <button
+              onClick={() => setUseStream(!useStream)}
+              className={`px-sm py-xs text-xs rounded transition-colors duration-micro ${
+                useStream 
+                  ? 'bg-primary text-white' 
+                  : 'bg-background-secondary text-text-secondary hover:bg-background-tertiary'
+              }`}
+              title={useStream ? '流式模式' : '普通模式'}
+            >
+              {useStream ? '⚡ 流式' : '📝 普通'}
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-background-secondary rounded transition-colors duration-micro"
+            >
+              <X size={18} className="text-text-secondary" />
+            </button>
+          </div>
         </div>
 
         {/* 消息列表 */}
@@ -165,16 +246,26 @@ function EmptyState() {
  */
 function MessageBubble({ message }: { message: any }) {
   const isUser = message.role === 'user'
+  const isStreaming = message.isStreaming
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}>
       <div
         className={`
-          max-w-[70%] px-md py-sm rounded-card
-          ${isUser ? 'bg-primary text-white' : 'bg-background-secondary text-text'}
+          max-w-[70%] px-md py-sm rounded-card relative
+          ${isUser 
+            ? 'bg-primary text-white' 
+            : 'bg-background-secondary text-text'
+          }
+          ${isStreaming ? 'streaming-message' : ''}
         `}
       >
-        <p className="text-sm leading-relaxed break-words">{message.content}</p>
+        <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">
+          {message.content}
+          {isStreaming && (
+            <span className="inline-block w-1 h-4 ml-1 bg-current animate-pulse" />
+          )}
+        </p>
         <p className={`text-xs mt-xs ${isUser ? 'text-blue-100' : 'text-text-tertiary'}`}>
           {new Date(message.timestamp).toLocaleTimeString('zh-CN', {
             hour: '2-digit',

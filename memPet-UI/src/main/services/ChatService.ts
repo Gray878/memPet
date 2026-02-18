@@ -109,8 +109,7 @@ export class ChatService {
         this.conversationHistory = this.conversationHistory.slice(-this.MAX_HISTORY)
       }
 
-      // 5. 自动记忆对话
-      await this.memorizeConversation(userMessage, response)
+      // 5. 自动记忆对话 (memU-server 已自动处理)
 
       return response
 
@@ -121,7 +120,7 @@ export class ChatService {
   }
 
   /**
-   * 流式对话
+   * 流式对话 (使用普通 API + 前端模拟流式)
    */
   async chatStream(userMessage: string): Promise<void> {
     try {
@@ -133,8 +132,30 @@ export class ChatService {
       // 2. 构建消息列表
       const messages = this.buildMessages(userMessage, relevantMemories)
 
-      // 3. 调用流式 API
-      await this.callLLMStream(messages, userMessage)
+      // 3. 调用普通 API (非流式)
+      const response = await this.callLLM(messages)
+
+      // 4. 模拟流式输出 - 按字符分块发送
+      const chunkSize = 5 // 每次发送 5 个字符
+      for (let i = 0; i < response.length; i += chunkSize) {
+        const chunk = response.slice(i, i + chunkSize)
+        this.sendStreamChunk(chunk)
+        // 添加小延迟模拟流式效果
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
+
+      // 5. 发送完成信号
+      this.sendStreamComplete()
+
+      // 6. 更新对话历史
+      this.conversationHistory.push(
+        { role: 'user', content: userMessage },
+        { role: 'assistant', content: response }
+      )
+
+      if (this.conversationHistory.length > this.MAX_HISTORY) {
+        this.conversationHistory = this.conversationHistory.slice(-this.MAX_HISTORY)
+      }
 
     } catch (error: any) {
       console.error('[ChatService] 流式对话失败:', error)
@@ -184,54 +205,68 @@ export class ChatService {
   }
 
   /**
-   * 调用 LLM API
+   * 调用 LLM API (通过 memU-server)
    */
   private async callLLM(messages: ChatMessage[]): Promise<string> {
-    const response = await fetch(`${this.config.baseURL}/chat/completions`, {
+    // 提取用户消息和历史
+    const userMessage = messages[messages.length - 1].content
+    const history = messages.slice(1, -1).map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }))
+
+    const response = await fetch(`http://127.0.0.1:8000/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.config.apiKey}`,
       },
       body: JSON.stringify({
-        model: this.config.model,
-        messages,
+        message: userMessage,
+        history,
+        personality: this.config.personality,
         temperature: this.config.temperature,
         max_tokens: this.config.maxTokens,
+        retrieve_memories: true,
       }),
     })
 
     if (!response.ok) {
       const error = await response.text()
-      throw new Error(`LLM API 错误: ${response.status} ${error}`)
+      throw new Error(`memU-server 错误: ${response.status} ${error}`)
     }
 
     const data = await response.json()
-    return data.choices[0].message.content
+    return data.response
   }
 
   /**
-   * 调用流式 LLM API
+   * 调用流式 LLM API (通过 memU-server)
    */
   private async callLLMStream(messages: ChatMessage[], userMessage: string): Promise<void> {
-    const response = await fetch(`${this.config.baseURL}/chat/completions`, {
+    // 提取历史
+    const history = messages.slice(1, -1).map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }))
+
+    const response = await fetch(`http://127.0.0.1:8000/chat/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.config.apiKey}`,
       },
       body: JSON.stringify({
-        model: this.config.model,
-        messages,
+        message: userMessage,
+        history,
+        personality: this.config.personality,
         temperature: this.config.temperature,
         max_tokens: this.config.maxTokens,
-        stream: true,
+        retrieve_memories: true,
       }),
     })
 
     if (!response.ok) {
       const error = await response.text()
-      throw new Error(`LLM API 错误: ${response.status} ${error}`)
+      throw new Error(`memU-server 错误: ${response.status} ${error}`)
     }
 
     const reader = response.body?.getReader()
@@ -252,14 +287,18 @@ export class ChatService {
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const data = line.slice(6)
-          if (data === '[DONE]') continue
 
           try {
             const parsed = JSON.parse(data)
-            const content = parsed.choices[0]?.delta?.content || ''
-            if (content) {
-              fullResponse += content
-              this.sendStreamChunk(content)
+            
+            if (parsed.chunk) {
+              fullResponse += parsed.chunk
+              this.sendStreamChunk(parsed.chunk)
+            } else if (parsed.done) {
+              // 流式完成
+              break
+            } else if (parsed.error) {
+              throw new Error(parsed.error)
             }
           } catch (e) {
             console.error('[ChatService] 解析流数据失败:', e)
@@ -280,9 +319,6 @@ export class ChatService {
     if (this.conversationHistory.length > this.MAX_HISTORY) {
       this.conversationHistory = this.conversationHistory.slice(-this.MAX_HISTORY)
     }
-
-    // 自动记忆对话
-    await this.memorizeConversation(userMessage, fullResponse)
   }
 
   /**

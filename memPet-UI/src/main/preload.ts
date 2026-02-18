@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+const { contextBridge, ipcRenderer } = require('electron')
 
 /**
  * Preload 脚本 - 暴露安全的 API 给渲染进程
@@ -91,4 +91,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pet: petAPI,
   chat: chatAPI,
   events: eventsAPI,
+})
+
+// 调试日志 - 确认 preload 脚本已执行
+console.log('[Preload] Script executed successfully')
+console.log('[Preload] electronAPI exposed with:', {
+  system: !!systemAPI,
+  memory: !!memoryAPI,
+  pet: !!petAPI,
+  chat: !!chatAPI,
+  events: !!eventsAPI,
 })

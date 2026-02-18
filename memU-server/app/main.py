@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import traceback
@@ -381,22 +382,21 @@ async def proactive_generate(payload: dict[str, Any]):
         )
         
         # 调用 LLM 生成消息
-        # 注意：这里使用 service 的 LLM 配置
-        from memu.llm import get_llm_client
+        try:
+            llm_client = service._get_llm_client()
+            llm_response = await llm_client.chat(
+                prompt=prompt,
+                temperature=0.8
+            )
+        except Exception as e:
+            print(f"[Proactive] LLM 调用失败: {e}")
+            llm_response = "主人，我现在有点累了，稍后再聊吧~"
         
-        llm_client = get_llm_client(
-            provider=llm_profiles["default"]["provider"],
-            api_key=llm_profiles["default"]["api_key"],
-            base_url=llm_profiles["default"].get("base_url"),
-            chat_model=llm_profiles["default"]["chat_model"]
-        )
-        
-        response = await llm_client.chat(
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.8
-        )
-        
-        message = response.get("content", "")
+        # 提取响应内容
+        if isinstance(llm_response, dict):
+            message = llm_response.get("content", str(llm_response))
+        else:
+            message = str(llm_response)
         
         return JSONResponse(content={
             "status": "success",
@@ -523,3 +523,254 @@ async def batch_flush():
     except Exception as exc:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/chat")
+async def chat(payload: dict[str, Any]):
+    """
+    对话接口 - 支持记忆增强的 AI 对话
+    
+    请求参数:
+    - message: 用户消息
+    - history: 对话历史 (可选)
+    - personality: 性格类型 (可选: friendly, energetic, professional, tsundere)
+    - temperature: 温度参数 (可选, 默认 0.7)
+    - max_tokens: 最大 token 数 (可选, 默认 2000)
+    - retrieve_memories: 是否检索相关记忆 (可选, 默认 True)
+    
+    返回:
+    - response: AI 回复
+    - memories_used: 使用的记忆数量
+    """
+    try:
+        message = payload.get("message")
+        if not message:
+            raise ValueError("message 参数不能为空")
+        
+        history = payload.get("history", [])
+        personality = payload.get("personality", "friendly")
+        temperature = payload.get("temperature", 0.7)
+        max_tokens = payload.get("max_tokens", 2000)
+        retrieve_memories = payload.get("retrieve_memories", True)
+        
+        # 性格提示词
+        personality_prompts = {
+            "friendly": "你是一个友好、温暖的桌面宠物助手,名叫 memPet。你会用轻松愉快的语气与用户交流,关心用户的工作和生活。",
+            "energetic": "你是一个充满活力、积极向上的桌面宠物助手,名叫 memPet。你总是充满热情,用鼓励的话语激励用户。",
+            "professional": "你是一个专业、高效的桌面助手,名叫 memPet。你会用简洁明了的语言提供帮助,注重效率和准确性。",
+            "tsundere": "你是一个表面高冷但内心温柔的桌面宠物,名叫 memPet。你会用略带傲娇的语气说话,但实际上很关心用户。",
+        }
+        
+        system_prompt = personality_prompts.get(personality, personality_prompts["friendly"])
+        system_prompt += "\n\n你具有记忆能力,可以记住与用户的对话历史和用户的活动。当用户提到过去的事情时,你可以回忆起来。\n\n回复时请注意:\n1. 保持简洁,避免过长的回复\n2. 使用自然、口语化的表达\n3. 适当使用 emoji 增加亲和力\n4. 如果用户问到你不知道的事情,诚实地说不知道\n5. 根据上下文和记忆提供个性化的回复"
+        
+        # 检索相关记忆
+        memories = []
+        if retrieve_memories:
+            try:
+                retrieve_result = await service.retrieve(
+                    text=message,  # 使用 text 而不是 query
+                    limit=5,
+                    category="conversation"
+                )
+                memories = retrieve_result.get("result", [])
+            except Exception as e:
+                print(f"[Chat] 检索记忆失败: {e}")
+        
+        # 注入记忆到系统提示词
+        if memories:
+            system_prompt += "\n\n相关记忆:\n"
+            for i, memory in enumerate(memories, 1):
+                system_prompt += f"{i}. {memory.get('content', '')}\n"
+        
+        # 构建消息列表
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # 添加历史对话
+        for msg in history[-10:]:  # 只保留最近 10 条
+            messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", "")
+            })
+        
+        # 添加当前消息
+        messages.append({"role": "user", "content": message})
+        
+        # 调用 LLM (使用简化的方式)
+        # 构建完整的 prompt
+        full_prompt = system_prompt + "\n\n"
+        
+        # 添加历史对话
+        for msg in history[-10:]:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            full_prompt += f"{role}: {content}\n"
+        
+        # 添加当前消息
+        full_prompt += f"user: {message}\nassistant:"
+        
+        # 使用 memU 的内部方法调用 LLM
+        try:
+            # 尝试使用 _get_llm_client 方法
+            llm_client = service._get_llm_client()
+            llm_response = await llm_client.chat(
+                prompt=full_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+        except Exception as e:
+            print(f"[Chat] LLM 调用失败: {e}")
+            # 降级方案：返回简单响应
+            llm_response = "抱歉，我现在无法回复。请稍后再试。"
+        
+        # 提取响应内容
+        if isinstance(llm_response, dict):
+            response = llm_response.get("content", str(llm_response))
+        else:
+            response = str(llm_response)
+        
+        # 自动记忆对话 (暂时禁用，避免格式问题)
+        # try:
+        #     await service.memorize(
+        #         content=[
+        #             {"role": "user", "content": message},
+        #             {"role": "assistant", "content": response}
+        #         ],
+        #         category="conversation"
+        #     )
+        # except Exception as e:
+        #     print(f"[Chat] 自动记忆对话失败: {e}")
+        
+        return {
+            "response": response,
+            "memories_used": len(memories)
+        }
+        
+    except Exception as e:
+        print(f"[Chat] 对话失败: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/chat/stream")
+async def chat_stream(payload: dict[str, Any]):
+    """
+    流式对话接口 - 支持 Server-Sent Events (已修复 v2)
+    
+    请求参数同 /chat
+    
+    返回: SSE 流
+    """
+    from fastapi.responses import StreamingResponse
+    import json
+    
+    async def generate():
+        try:
+            message = payload.get("message")
+            if not message:
+                yield f"data: {json.dumps({'error': 'message 参数不能为空'})}\n\n"
+                return
+            
+            history = payload.get("history", [])
+            personality = payload.get("personality", "friendly")
+            temperature = payload.get("temperature", 0.7)
+            max_tokens = payload.get("max_tokens", 2000)
+            retrieve_memories = payload.get("retrieve_memories", True)
+            
+            # 性格提示词 (同上)
+            personality_prompts = {
+                "friendly": "你是一个友好、温暖的桌面宠物助手,名叫 memPet。你会用轻松愉快的语气与用户交流,关心用户的工作和生活。",
+                "energetic": "你是一个充满活力、积极向上的桌面宠物助手,名叫 memPet。你总是充满热情,用鼓励的话语激励用户。",
+                "professional": "你是一个专业、高效的桌面助手,名叫 memPet。你会用简洁明了的语言提供帮助,注重效率和准确性。",
+                "tsundere": "你是一个表面高冷但内心温柔的桌面宠物,名叫 memPet。你会用略带傲娇的语气说话,但实际上很关心用户。",
+            }
+            
+            system_prompt = personality_prompts.get(personality, personality_prompts["friendly"])
+            system_prompt += "\n\n你具有记忆能力,可以记住与用户的对话历史和用户的活动。当用户提到过去的事情时,你可以回忆起来。\n\n回复时请注意:\n1. 保持简洁,避免过长的回复\n2. 使用自然、口语化的表达\n3. 适当使用 emoji 增加亲和力\n4. 如果用户问到你不知道的事情,诚实地说不知道\n5. 根据上下文和记忆提供个性化的回复"
+            
+            # 检索相关记忆
+            memories = []
+            if retrieve_memories:
+                try:
+                    retrieve_result = await service.retrieve(
+                        text=message,  # 使用 text 而不是 query
+                        limit=5,
+                        category="conversation"
+                    )
+                    memories = retrieve_result.get("result", [])
+                except Exception as e:
+                    print(f"[Chat] 检索记忆失败: {e}")
+            
+            # 注入记忆
+            if memories:
+                system_prompt += "\n\n相关记忆:\n"
+                for i, memory in enumerate(memories, 1):
+                    system_prompt += f"{i}. {memory.get('content', '')}\n"
+            
+            # 构建消息列表
+            messages = [{"role": "system", "content": system_prompt}]
+            for msg in history[-10:]:
+                messages.append({
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", "")
+                })
+            messages.append({"role": "user", "content": message})
+            
+            # 构建完整的 prompt
+            full_prompt = system_prompt + "\n\n"
+            for msg in history[-10:]:
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                full_prompt += f"{role}: {content}\n"
+            full_prompt += f"user: {message}\nassistant:"
+            
+            # 调用 LLM（使用普通 chat，然后模拟流式返回）
+            try:
+                llm_client = service._get_llm_client()
+                
+                # 调用普通 chat 方法
+                llm_response = await llm_client.chat(
+                    prompt=full_prompt,
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                
+                # 提取响应内容
+                if isinstance(llm_response, dict):
+                    full_response = llm_response.get("content", str(llm_response))
+                else:
+                    full_response = str(llm_response)
+                
+                # 模拟流式输出（按字符分块）
+                chunk_size = 5  # 每次发送 5 个字符
+                for i in range(0, len(full_response), chunk_size):
+                    chunk = full_response[i:i+chunk_size]
+                    yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n"
+                    # 添加小延迟模拟流式效果
+                    await asyncio.sleep(0.05)
+                
+                yield f"data: {json.dumps({'done': True})}\n\n"
+            except Exception as e:
+                print(f"[Chat Stream] 流式调用失败: {e}")
+                yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
+            
+            # 自动记忆对话 (暂时禁用，避免格式问题)
+            # try:
+            #     await service.memorize(
+            #         content=[
+            #             {"role": "user", "content": message},
+            #             {"role": "assistant", "content": full_response}
+            #         ],
+            #         category="conversation"
+            #     )
+            # except Exception as e:
+            #     print(f"[Chat] 自动记忆对话失败: {e}")
+                
+        except Exception as e:
+            print(f"[Chat Stream] 流式对话失败: {e}")
+            import traceback
+            traceback.print_exc()
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")

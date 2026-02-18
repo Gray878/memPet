@@ -36,7 +36,13 @@ export default defineConfig({
         },
         vite: {
           build: {
-            outDir: 'dist-electron/preload'
+            outDir: 'dist-electron/preload',
+            rollupOptions: {
+              output: {
+                entryFileNames: 'index.js',
+                format: 'cjs'  // 使用 CommonJS 格式，Electron preload 需要
+              }
+            }
           }
         }
       }

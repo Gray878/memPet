@@ -6,10 +6,12 @@ import { SystemMonitor } from './services/SystemMonitor'
 import { AutoMemoryService } from './services/AutoMemoryService'
 import { ProactiveService } from './services/ProactiveService'
 import { ChatService } from './services/ChatService'
+import { ConfigService } from './services/ConfigService'
 import { registerMemoryHandlers } from './ipc/memoryHandlers'
 import { registerSystemHandlers } from './ipc/systemHandlers'
 import { registerPetHandlers } from './ipc/petHandlers'
 import { registerChatHandlers } from './ipc/chatHandlers'
+import { registerSettingsHandlers } from './ipc/settingsHandlers'
 
 // ES Module 环境下定义 __dirname
 const __filename = fileURLToPath(import.meta.url)
@@ -20,6 +22,7 @@ const isDev = process.env.NODE_ENV === 'development'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
+let configService: ConfigService | null = null
 let memUService: MemUService | null = null
 let systemMonitor: SystemMonitor | null = null
 let autoMemoryService: AutoMemoryService | null = null
@@ -43,6 +46,9 @@ function createWindow() {
       contextIsolation: true,
     },
   })
+
+  // 调试：打印 preload 路径
+  console.log('[Main] Preload path:', path.join(__dirname, '../preload/index.js'))
 
   mainWindow.setIgnoreMouseEvents(false)
 
@@ -126,6 +132,11 @@ async function initializeServices() {
   try {
     console.log('[Main] 初始化服务...')
     
+    // 0. 加载配置
+    configService = new ConfigService()
+    await configService.load()
+    console.log('[Main] 配置加载成功')
+    
     // 1. 启动 memU-server
     memUService = new MemUService()
     await memUService.start()
@@ -155,6 +166,7 @@ async function initializeServices() {
     registerSystemHandlers(systemMonitor)
     registerPetHandlers(memUService)
     registerChatHandlers(chatService)
+    registerSettingsHandlers(configService, memUService)
     console.log('[Main] IPC 处理器注册成功')
     
     console.log('[Main] 所有服务初始化完成')

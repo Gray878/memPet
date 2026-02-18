@@ -12,6 +12,8 @@ export class MemUService {
   private readonly serverPath: string
   private isReady: boolean = false
   private healthCheckInterval: NodeJS.Timeout | null = null
+  private logs: string[] = []
+  private readonly MAX_LOGS = 1000
 
   constructor(baseURL: string = 'http://127.0.0.1:8000') {
     this.baseURL = baseURL
@@ -39,18 +41,30 @@ export class MemUService {
 
     console.log('[MemUService] 启动 memU-server...')
     
-    this.process = spawn('uv', ['run', 'fastapi', 'dev', 'app/main.py'], {
+    // 设置环境变量禁用彩色输出和 Rich 库
+    const env = {
+      ...process.env,
+      PYTHONIOENCODING: 'utf-8',
+      NO_COLOR: '1',  // 禁用彩色输出
+      TERM: 'dumb',   // 使用简单终端模式
+    }
+    
+    this.process = spawn('uv', ['run', 'fastapi', 'dev', 'app/main.py', '--host', '127.0.0.1', '--port', '8000'], {
       cwd: this.serverPath,
       shell: true,
-      env: { ...process.env },
+      env: env,
     })
 
     this.process.stdout?.on('data', (data) => {
-      console.log(`[MemUService] ${data.toString().trim()}`)
+      const log = data.toString().trim()
+      console.log(`[MemUService] ${log}`)
+      this.addLog('INFO', log)
     })
 
     this.process.stderr?.on('data', (data) => {
-      console.error(`[MemUService] ${data.toString().trim()}`)
+      const log = data.toString().trim()
+      console.error(`[MemUService] ${log}`)
+      this.addLog('ERROR', log)
     })
 
     await this.waitForReady()
@@ -105,6 +119,35 @@ export class MemUService {
 
   isServiceReady(): boolean {
     return this.isReady
+  }
+
+  isRunning(): boolean {
+    return this.process !== null && !this.process.killed
+  }
+
+  async restart(): Promise<void> {
+    console.log('[MemUService] 重启服务...')
+    await this.stop()
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    await this.start()
+  }
+
+  private addLog(level: string, message: string): void {
+    const timestamp = new Date().toISOString()
+    this.logs.push(`[${timestamp}] [${level}] ${message}`)
+    
+    // 保持日志数量在限制内
+    if (this.logs.length > this.MAX_LOGS) {
+      this.logs = this.logs.slice(-this.MAX_LOGS)
+    }
+  }
+
+  getLogs(lines: number = 100): string[] {
+    return this.logs.slice(-lines)
+  }
+
+  clearLogs(): void {
+    this.logs = []
   }
 
   async memorizeConversation(content: any[]): Promise<any> {
