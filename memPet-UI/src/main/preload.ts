@@ -78,6 +78,34 @@ const settingsAPI = {
   selectFolder: (title: string) => ipcRenderer.invoke('settings:select-folder', title),
 }
 
+// 托盘 API
+const trayAPI = {
+  updateMenu: (options: any) => ipcRenderer.invoke('tray:update-menu', options),
+  showNotification: (title: string, body: string) => ipcRenderer.invoke('tray:show-notification', title, body),
+}
+
+// 通知 API
+const notificationAPI = {
+  show: (type: string, title: string, body: string, options?: any) =>
+    ipcRenderer.invoke('notification:show', type, title, body, options),
+  showProactive: (message: string, suggestion?: string) =>
+    ipcRenderer.invoke('notification:show-proactive', message, suggestion),
+  updateConfig: (config: any) => ipcRenderer.invoke('notification:update-config', config),
+  getConfig: () => ipcRenderer.invoke('notification:get-config'),
+  getHistory: (limit?: number) => ipcRenderer.invoke('notification:get-history', limit),
+  markRead: (id: string) => ipcRenderer.invoke('notification:mark-read', id),
+  clearHistory: () => ipcRenderer.invoke('notification:clear-history'),
+  getUnreadCount: () => ipcRenderer.invoke('notification:get-unread-count'),
+}
+
+// 快捷键 API
+const shortcutAPI = {
+  getConfig: () => ipcRenderer.invoke('shortcut:get-config'),
+  updateConfig: (shortcuts: any) => ipcRenderer.invoke('shortcut:update-config', shortcuts),
+  isRegistered: (accelerator: string) => ipcRenderer.invoke('shortcut:is-registered', accelerator),
+  validate: (accelerator: string) => ipcRenderer.invoke('shortcut:validate', accelerator),
+}
+
 // 事件监听 API
 const eventsAPI = {
   on: (channel: string, callback: (...args: any[]) => void) => {
@@ -89,6 +117,8 @@ const eventsAPI = {
       'chat-stream-chunk',
       'chat-stream-complete',
       'chat-stream-error',
+      'toggle-proactive',
+      'quick-note',
     ]
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (_event, ...args) => callback(...args))
@@ -106,6 +136,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pet: petAPI,
   chat: chatAPI,
   settings: settingsAPI,
+  tray: trayAPI,
+  notification: notificationAPI,
+  shortcut: shortcutAPI,
   events: eventsAPI,
 })
 
@@ -117,5 +150,8 @@ console.log('[Preload] electronAPI exposed with:', {
   pet: !!petAPI,
   chat: !!chatAPI,
   settings: !!settingsAPI,
+  tray: !!trayAPI,
+  notification: !!notificationAPI,
+  shortcut: !!shortcutAPI,
   events: !!eventsAPI,
 })

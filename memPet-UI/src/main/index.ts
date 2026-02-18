@@ -7,11 +7,15 @@ import { AutoMemoryService } from './services/AutoMemoryService'
 import { ProactiveService } from './services/ProactiveService'
 import { ChatService } from './services/ChatService'
 import { ConfigService } from './services/ConfigService'
+import { TrayService } from './services/TrayService'
+import { ShortcutService } from './services/ShortcutService'
+import { NotificationService } from './services/NotificationService'
 import { registerMemoryHandlers } from './ipc/memoryHandlers'
 import { registerSystemHandlers } from './ipc/systemHandlers'
 import { registerPetHandlers } from './ipc/petHandlers'
 import { registerChatHandlers } from './ipc/chatHandlers'
 import { registerSettingsHandlers } from './ipc/settingsHandlers'
+import { registerTrayHandlers } from './ipc/trayHandlers'
 
 // ES Module 环境下定义 __dirname
 const __filename = fileURLToPath(import.meta.url)
@@ -28,6 +32,9 @@ let systemMonitor: SystemMonitor | null = null
 let autoMemoryService: AutoMemoryService | null = null
 let proactiveService: ProactiveService | null = null
 let chatService: ChatService | null = null
+let trayService: TrayService | null = null
+let shortcutService: ShortcutService | null = null
+let notificationService: NotificationService | null = null
 
 // 创建主窗口
 function createWindow() {
@@ -66,38 +73,20 @@ function createWindow() {
 
 // 创建系统托盘
 function createTray() {
-  // 创建托盘图标（这里使用一个简单的图标，实际应该使用 .ico 或 .png 文件）
-  const icon = nativeImage.createEmpty()
-  tray = new Tray(icon)
+  trayService = new TrayService()
+  if (mainWindow) {
+    trayService.setMainWindow(mainWindow)
+  }
+  trayService.create()
   
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: '显示宠物',
-      click: () => {
-        if (mainWindow) {
-          mainWindow.show()
-        }
-      }
-    },
-    {
-      label: '打开对话',
-      click: () => {
-        if (mainWindow) {
-          mainWindow.webContents.send('open-chat')
-        }
-      }
-    },
-    {
-      label: '查看记忆',
-      click: () => {
-        if (mainWindow) {
-          mainWindow.webContents.send('open-memory')
-        }
-      }
-    },
-    {
-      label: '设置',
-      click: () => {
+  // 根据配置更新托盘菜单
+  if (configService) {
+    const config = configService.get()
+    trayService.updateContextMenu({
+      proactiveEnabled: config.behavior.proactiveEnabled
+    })
+  }
+}
         if (mainWindow) {
           mainWindow.webContents.send('open-settings')
         }
@@ -161,6 +150,32 @@ async function initializeServices() {
     chatService = new ChatService(memUService)
     console.log('[Main] 对话服务启动成功')
     
+    // 6. 初始化通知服务
+    const config = configService.get()
+    notificationService = new NotificationService({
+      enabled: config.behavior.notificationsEnabled,
+      quietHoursEnabled: config.behavior.quietHoursEnabled,
+      quietHoursStart: config.behavior.quietHoursStart,
+      quietHoursEnd: config.behavior.quietHoursEnd,
+    })
+    console.log('[Main] 通知服务初始化成功')
+    
+    // 7. 初始化快捷键服务
+    shortcutService = new ShortcutService()
+    console.log('[Main] 快捷键服务初始化成功')
+    
+    // 8. 注册 IPC 处理器
+    registerMemoryHandlers(memUService, autoMemoryService)
+    registerSystemHandlers(systemMonitor)
+    registerPetHandlers(memUService)
+    registerChatHandlers(chatService)
+    registerSettingsHandlers(configService, memUService)
+    registerTrayHandlers(trayService, notificationService, shortcutService)
+    console.log('[Main] IPC 处理器注册成功')
+    
+    console.log('[Main] 所有服务初始化完成')
+    console.log('[Main] 对话服务启动成功')
+    
     // 6. 注册 IPC 处理器
     registerMemoryHandlers(memUService, autoMemoryService)
     registerSystemHandlers(systemMonitor)
@@ -185,6 +200,16 @@ async function initializeServices() {
 // 清理服务
 async function cleanupServices() {
   console.log('[Main] 清理服务...')
+  
+  if (shortcutService) {
+    shortcutService.unregisterAll()
+    console.log('[Main] 快捷键已注销')
+  }
+  
+  if (trayService) {
+    trayService.destroy()
+    console.log('[Main] 托盘已销毁')
+  }
   
   if (proactiveService) {
     proactiveService.stop()
@@ -213,14 +238,25 @@ app.whenReady().then(async () => {
   createWindow()
   createTray()
 
-  // 设置主窗口引用到 ProactiveService
-  if (mainWindow && proactiveService) {
-    proactiveService.setMainWindow(mainWindow)
+  // 设置主窗口引用到各个服务
+  if (mainWindow) {
+    if (proactiveService) {
+      proactiveService.setMainWindow(mainWindow)
+    }
+    if (chatService) {
+      chatService.setMainWindow(mainWindow)
+    }
+    if (trayService) {
+      trayService.setMainWindow(mainWindow)
+    }
+    if (shortcutService) {
+      shortcutService.setMainWindow(mainWindow)
+    }
   }
 
-  // 设置主窗口引用到 ChatService
-  if (mainWindow && chatService) {
-    chatService.setMainWindow(mainWindow)
+  // 注册全局快捷键
+  if (shortcutService) {
+    shortcutService.registerAll()
   }
 
   app.on('activate', () => {

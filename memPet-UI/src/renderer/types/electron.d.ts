@@ -71,6 +71,26 @@ export interface ElectronAPI {
     clearLogs: () => Promise<{ success: boolean; message?: string; error?: string }>
     selectFolder: (title: string) => Promise<{ success: boolean; path?: string; error?: string }>
   }
+  tray: {
+    updateMenu: (options: any) => Promise<{ success: boolean; error?: string }>
+    showNotification: (title: string, body: string) => Promise<{ success: boolean; error?: string }>
+  }
+  notification: {
+    show: (type: string, title: string, body: string, options?: any) => Promise<{ success: boolean; error?: string }>
+    showProactive: (message: string, suggestion?: string) => Promise<{ success: boolean; error?: string }>
+    updateConfig: (config: any) => Promise<{ success: boolean; error?: string }>
+    getConfig: () => Promise<{ success: boolean; data?: any; error?: string }>
+    getHistory: (limit?: number) => Promise<{ success: boolean; data?: any[]; error?: string }>
+    markRead: (id: string) => Promise<{ success: boolean; error?: string }>
+    clearHistory: () => Promise<{ success: boolean; error?: string }>
+    getUnreadCount: () => Promise<{ success: boolean; data?: number; error?: string }>
+  }
+  shortcut: {
+    getConfig: () => Promise<{ success: boolean; data?: any; error?: string }>
+    updateConfig: (shortcuts: any) => Promise<{ success: boolean; error?: string }>
+    isRegistered: (accelerator: string) => Promise<{ success: boolean; data?: boolean; error?: string }>
+    validate: (accelerator: string) => Promise<{ success: boolean; data?: boolean; error?: string }>
+  }
   events: {
     on: (channel: string, callback: (...args: any[]) => void) => void
     removeListener: (channel: string, callback: (...args: any[]) => void) => void
