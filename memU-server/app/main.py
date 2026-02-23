@@ -57,11 +57,20 @@ try:
     
     # 判断数据库类型
     if "metadata_store" in database_config:
-        # SQLite 格式
         provider = database_config["metadata_store"]["provider"]
         dsn = database_config["metadata_store"]["dsn"]
-        print(f"✓ 使用 SQLite 数据库")
-        print(f"✓ 数据库文件: {dsn.replace('sqlite:///', '')}")
+        
+        if provider == "sqlite":
+            print(f"✓ 使用 SQLite 数据库")
+            print(f"✓ 数据库文件: {dsn.replace('sqlite:///', '')}")
+        elif provider == "postgres":
+            print(f"✓ 使用 PostgreSQL 数据库")
+            # 隐藏密码部分
+            if "@" in dsn:
+                safe_dsn = dsn.split("@")[0].split(":")[0] + ":***@" + dsn.split("@")[1]
+            else:
+                safe_dsn = dsn
+            print(f"✓ 数据库连接: {safe_dsn}")
     else:
         # PostgreSQL 格式
         provider = "postgres"
@@ -121,24 +130,84 @@ else:
     }
     print(f"✓ 使用 OpenAI")
 
-service = MemoryService(
-    llm_profiles=llm_profiles,
-    database_config=database_config
-    # 暂时不传递自定义分类，使用默认配置
-    # memorize_config={
-    #     "memory_categories": [
-    #         CategoryConfig(**cat) for cat in MemoryAdapter.DESKTOP_PET_CATEGORIES
-    #     ]
-    # }
-)
+print(f"✓ API 地址: {base_url}")
+print(f"✓ 聊天模型: {llm_profiles['default']['chat_model']}")
+print(f"✓ 嵌入模型: {llm_profiles['default']['embed_model']}")
+print("")
+print("正在初始化 MemoryService...")
+print("  - 连接数据库...")
+print("  - 创建表结构...")
+print("  - 初始化嵌入模型...")
+print("  (首次启动可能需要 30-60 秒)")
+print("")
+
+# ✅ 配置 blob_config，指定 resources 目录
+blob_config = {
+    "provider": "local",
+    "resources_dir": str(Path("./data/resources").absolute())
+}
+
+# ✅ 配置 retrieve_config，禁用意图路由和充分性检查（调试用）
+retrieve_config = {
+    "method": "rag",
+    "route_intention": False,  # 🔍 禁用意图路由，直接检索
+    "sufficiency_check": False,  # 🔍 禁用充分性检查，返回所有结果
+    "category": {"enabled": True, "top_k": 5},
+    "item": {"enabled": True, "top_k": 10},  # 增加返回数量
+    "resource": {"enabled": True, "top_k": 5}
+}
+
+# ✅ 添加重试机制
+max_retries = 3
+retry_delay = 2  # 秒
+
+for attempt in range(max_retries):
+    try:
+        print(f"尝试初始化 MemoryService (第 {attempt + 1}/{max_retries} 次)...")
+        service = MemoryService(
+            llm_profiles=llm_profiles,
+            database_config=database_config,
+            blob_config=blob_config,  # ✅ 添加 blob_config
+            retrieve_config=retrieve_config  # ✅ 添加 retrieve_config
+            # 暂时不传递自定义分类，使用默认配置
+            # memorize_config={
+            #     "memory_categories": [
+            #         CategoryConfig(**cat) for cat in MemoryAdapter.DESKTOP_PET_CATEGORIES
+            #     ]
+            # }
+        )
+        print("✓ MemoryService 初始化完成")
+        break
+    except Exception as e:
+        print(f"✗ 初始化失败: {e}")
+        if attempt < max_retries - 1:
+            print(f"等待 {retry_delay} 秒后重试...")
+            import time
+            time.sleep(retry_delay)
+        else:
+            print("✗ 达到最大重试次数，初始化失败")
+            print("\n可能的原因:")
+            print("1. 数据库服务器连接不稳定")
+            print("2. 数据库连接数达到上限")
+            print("3. 网络问题")
+            print("\n建议:")
+            print("1. 检查数据库服务器状态")
+            print("2. 检查网络连接")
+            print("3. 稍后再试")
+            raise
 
 # 初始化桌面宠物适配器
+print("正在初始化适配器...")
 adapter = MemoryAdapter(service)
+print("✓ 适配器初始化完成")
 
 # 初始化主动推理辅助器
+print("正在初始化主动推理辅助器...")
 proactive_helper = ProactiveHelper()
+print("✓ 主动推理辅助器初始化完成")
 
 # 打印配置信息
+print("")
 print(f"✓ API 地址: {base_url}")
 print(f"✓ 聊天模型: {llm_profiles['default']['chat_model']}")
 print(f"✓ 嵌入模型: {llm_profiles['default']['embed_model']}")
@@ -147,7 +216,13 @@ print(f"✓ 嵌入模型: {llm_profiles['default']['embed_model']}")
 # 支持 STORAGE_PATH 和 MEMU_STORAGE_DIR（向后兼容）
 storage_dir = Path(os.getenv("STORAGE_PATH") or os.getenv("MEMU_STORAGE_DIR") or "./data")
 storage_dir.mkdir(parents=True, exist_ok=True)
+
+# ✅ 创建 resources 子目录（memU 需要）
+resources_dir = storage_dir / "resources"
+resources_dir.mkdir(parents=True, exist_ok=True)
+
 print(f"✓ 存储目录: {storage_dir.absolute()}")
+print(f"✓ 资源目录: {resources_dir.absolute()}")
 
 print("\n" + "=" * 60)
 print("memU-server 启动成功！")
@@ -161,12 +236,15 @@ async def memorize(payload: dict[str, Any]):
     
     对话记忆格式:
     {
-        "type": "conversation",
-        "content": [
+        "user_id": "test_user",
+        "messages": [
             {
                 "role": "user",
-                "content": {"text": "消息内容"},
-                "created_at": "2024-02-12 10:00:00"
+                "content": "消息内容"
+            },
+            {
+                "role": "assistant",
+                "content": "回复内容"
             }
         ]
     }
@@ -185,16 +263,33 @@ async def memorize(payload: dict[str, Any]):
     try:
         memory_type = payload.get("type", "conversation")
         
+        # 调试日志
+        print(f"[DEBUG] memorize - memory_type: {memory_type}")
+        
         if memory_type == "conversation":
             # 对话记忆：保存 JSON 文件并调用 memU
             file_path = storage_dir / f"conversation-{uuid.uuid4().hex}.json"
-            with file_path.open("w", encoding="utf-8") as f:
-                json.dump(payload, f, ensure_ascii=False)
             
-            result = await adapter.memorize_conversation(
-                payload.get("content", []),
-                str(file_path)
-            )
+            # 构建 memU 期望的格式
+            messages = payload.get("messages", [])
+            conversation_data = {
+                "messages": messages
+            }
+            
+            with file_path.open("w", encoding="utf-8") as f:
+                json.dump(conversation_data, f, ensure_ascii=False)
+            
+            # 调用 memU 存储
+            try:
+                result = await service.memorize(
+                    resource_url=str(file_path),
+                    modality="conversation"
+                )
+            except Exception as e:
+                print(f"[ERROR] memorize 调用失败: {e}")
+                import traceback
+                traceback.print_exc()
+                raise HTTPException(status_code=500, detail=f"存储失败: {str(e)}")
         
         elif memory_type == "system_observation":
             # 系统观察：通过适配器处理
@@ -226,6 +321,7 @@ async def retrieve(payload: dict[str, Any]):
     对话场景格式:
     {
         "scenario": "conversation",
+        "user_id": "test_user",
         "query": "查询文本",
         "limit": 3
     }
@@ -247,18 +343,41 @@ async def retrieve(payload: dict[str, Any]):
         scenario = payload.get("scenario", "conversation")
         limit = payload.get("limit", 5)
         
+        # 调试日志
+        print(f"[DEBUG] retrieve - scenario: {scenario}, limit: {limit}")
+        
         if scenario == "proactive":
             # 主动推理场景：使用适配器的增强检索
             context = payload.get("context", {})
             result = await adapter.retrieve_for_proactive(context, limit=limit)
         
         elif scenario == "conversation":
-            # 对话场景：使用适配器的对话上下文检索
+            # 对话场景：使用 memU 的 retrieve
             if "query" not in payload:
                 raise HTTPException(status_code=400, detail="对话场景需要提供 'query' 参数")
             
             query = payload["query"]
-            result = await adapter.retrieve_conversation_context(query, limit=limit)
+            
+            # 构建查询格式
+            queries = [{
+                "role": "user",
+                "content": {"text": query}
+            }]
+            
+            result = await service.retrieve(
+                queries=queries
+            )
+            
+            print(f"[DEBUG] retrieve - items count: {len(result.get('items', []))}")
+            
+            # 如果有 items，打印前几条
+            items = result.get('items', [])
+            if items:
+                print(f"[DEBUG] retrieve - 前 3 条记忆:")
+                for i, item in enumerate(items[:3], 1):
+                    print(f"  {i}. {item.get('summary', '')[:80]}")
+            else:
+                print(f"[DEBUG] retrieve - 没有找到记忆")
         
         else:
             raise HTTPException(status_code=400, detail=f"不支持的检索场景: {scenario}")
@@ -281,6 +400,19 @@ async def root():
         "message": "Hello MemU user!",
         "version": "0.1.0",
         "status": "running"
+    }
+
+
+
+
+@app.get("/health")
+async def health():
+    """健康检查接口（详细版本）"""
+    return {
+        "status": "ok",
+        "version": "0.1.0",
+        "database": "connected",
+        "llm": llm_profiles["default"]["chat_model"]
     }
 
 
@@ -320,9 +452,10 @@ async def proactive_analyze(payload: dict[str, Any]):
     """
     try:
         context = payload.get("context", {})
+        skip_cooldown = payload.get("skip_cooldown", False)  # 测试时可跳过冷却检查
         
         # 分析上下文，生成建议
-        suggestions = proactive_helper.analyze_context(context)
+        suggestions = proactive_helper.analyze_context(context, check_cooldown=not skip_cooldown)
         
         return JSONResponse(content={
             "status": "success",
@@ -409,6 +542,99 @@ async def proactive_generate(payload: dict[str, Any]):
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@app.post("/proactive/quick")
+async def proactive_quick(payload: dict[str, Any]):
+    """
+    快捷主动推理接口 - 一步完成分析和生成
+    
+    自动分析上下文，选择最高优先级的建议，并生成自然语言消息
+    
+    请求格式:
+    {
+        "context": {
+            "working_duration": 7200,
+            "active_app": "VSCode",
+            "fatigue_level": "Tired",
+            "is_late_night": false,
+            "idle_time": 0,
+            "is_work_hours": true,
+            "focus_level": "NormalFocus"
+        },
+        "personality": "friendly",
+        "limit": 3
+    }
+    
+    返回格式:
+    {
+        "status": "success",
+        "message": "主人已经工作 2 小时了，要不要休息一下眼睛呀？",
+        "suggestion": {
+            "type": "fatigue_reminder",
+            "priority": "high",
+            "message": "检测到疲劳",
+            "reason": "连续工作 2 小时",
+            "action": "建议休息 10 分钟"
+        },
+        "memories": [...]
+    }
+    """
+    try:
+        context = payload.get("context", {})
+        personality = payload.get("personality", "friendly")
+        limit = payload.get("limit", 3)
+        
+        # 第一步：分析上下文，生成建议
+        suggestions = proactive_helper.analyze_context(context)
+        
+        if not suggestions:
+            return JSONResponse(content={
+                "status": "success",
+                "message": None,
+                "suggestion": None,
+                "memories": []
+            })
+        
+        # 选择最高优先级的建议
+        suggestion = suggestions[0]
+        
+        # 第二步：检索相关记忆
+        memories_result = await adapter.retrieve_for_proactive(context, limit=limit)
+        memories = memories_result.get("result", [])
+        
+        # 第三步：生成自然语言消息
+        prompt = proactive_helper.format_suggestion_for_llm(
+            suggestion,
+            memories,
+            personality
+        )
+        
+        try:
+            llm_client = service._get_llm_client()
+            llm_response = await llm_client.chat(
+                prompt=prompt,
+                temperature=0.8
+            )
+        except Exception as e:
+            print(f"[Proactive Quick] LLM 调用失败: {e}")
+            llm_response = "主人，我现在有点累了，稍后再聊吧~"
+        
+        # 提取响应内容
+        if isinstance(llm_response, dict):
+            message = llm_response.get("content", str(llm_response))
+        else:
+            message = str(llm_response)
+        
+        return JSONResponse(content={
+            "status": "success",
+            "message": message,
+            "suggestion": suggestion,
+            "memories": memories
+        })
+    except Exception as exc:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @app.get("/proactive/cooldown")
 async def proactive_cooldown():
     """
@@ -441,88 +667,10 @@ async def proactive_cooldown():
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@app.post("/proactive/cooldown/reset")
-async def proactive_cooldown_reset(payload: dict[str, Any]):
-    """
-    重置冷却时间
-    
-    请求格式:
-    {
-        "type": "fatigue_reminder"  # 可选，不提供则重置所有
-    }
-    """
-    try:
-        suggestion_type = payload.get("type")
-        proactive_helper.reset_cooldown(suggestion_type)
-        
-        return JSONResponse(content={
-            "status": "success",
-            "message": f"已重置冷却时间: {suggestion_type or '全部'}"
-        })
-    except Exception as exc:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@app.post("/batch/observations")
-async def batch_observations(payload: dict[str, Any]):
-    """
-    批量添加观察记录到缓冲区
-    
-    用于高频监控数据的批量处理
-    
-    请求格式:
-    {
-        "observations": [
-            {
-                "type": "app_switch",
-                "app": "VSCode",
-                "duration": 300,
-                "timestamp": "2024-02-15T10:00:00"
-            },
-            {
-                "type": "idle_detected",
-                "minutes": 5,
-                "timestamp": "2024-02-15T10:05:00"
-            }
-        ]
-    }
-    """
-    try:
-        observations = payload.get("observations", [])
-        
-        # 添加到缓冲区
-        for obs in observations:
-            await adapter.add_observation(obs)
-        
-        return JSONResponse(content={
-            "status": "success",
-            "message": f"已添加 {len(observations)} 条观察记录到缓冲区",
-            "buffer_size": len(adapter.observation_buffer)
-        })
-    except Exception as exc:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@app.post("/batch/flush")
-async def batch_flush():
-    """
-    强制刷新缓冲区
-    
-    立即将缓冲区中的所有观察记录存储到数据库
-    """
-    try:
-        buffer_size = len(adapter.observation_buffer)
-        await adapter.force_flush()
-        
-        return JSONResponse(content={
-            "status": "success",
-            "message": f"已刷新 {buffer_size} 条观察记录"
-        })
-    except Exception as exc:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.post("/chat")
@@ -551,7 +699,8 @@ async def chat(payload: dict[str, Any]):
         personality = payload.get("personality", "friendly")
         temperature = payload.get("temperature", 0.7)
         max_tokens = payload.get("max_tokens", 2000)
-        retrieve_memories = payload.get("retrieve_memories", True)
+        # ✅ 支持两种参数名
+        retrieve_memories = payload.get("retrieve_memories", payload.get("use_memory", True))
         
         # 性格提示词
         personality_prompts = {
@@ -566,22 +715,47 @@ async def chat(payload: dict[str, Any]):
         
         # 检索相关记忆
         memories = []
+        memory_used = False
+        
         if retrieve_memories:
+            import time
+            retrieve_start = time.time()
             try:
+                queries = [{
+                    "role": "user",
+                    "content": {"text": message}
+                }]
+                
+                # 单用户模式，不过滤 user_id
                 retrieve_result = await service.retrieve(
-                    text=message,  # 使用 text 而不是 query
-                    limit=5,
-                    category="conversation"
+                    queries=queries
+                    # 不传 where 参数（单用户模式）
                 )
-                memories = retrieve_result.get("result", [])
+                
+                retrieve_time = time.time() - retrieve_start
+                print(f"[Chat] 检索记忆耗时: {retrieve_time:.2f}秒")
+                
+                items = retrieve_result.get("items", [])
+                if items:
+                    memory_used = True
+                    memories = items[:5]  # 只取前 5 条
+                    
+                    print(f"[Chat] 检索到 {len(memories)} 条相关记忆")
+                else:
+                    print(f"[Chat] 未找到相关记忆")
+                    
             except Exception as e:
                 print(f"[Chat] 检索记忆失败: {e}")
+                import traceback
+                traceback.print_exc()
         
         # 注入记忆到系统提示词
         if memories:
-            system_prompt += "\n\n相关记忆:\n"
+            system_prompt += "\n\n【相关记忆】\n"
             for i, memory in enumerate(memories, 1):
-                system_prompt += f"{i}. {memory.get('content', '')}\n"
+                summary = memory.get('summary', '')
+                system_prompt += f"{i}. {summary}\n"
+            system_prompt += "\n请基于以上记忆回答用户的问题。"
         
         # 构建消息列表
         messages = [{"role": "system", "content": system_prompt}]
@@ -611,6 +785,9 @@ async def chat(payload: dict[str, Any]):
         
         # 使用 memU 的内部方法调用 LLM
         try:
+            import time
+            llm_start = time.time()
+            
             # 尝试使用 _get_llm_client 方法
             llm_client = service._get_llm_client()
             llm_response = await llm_client.chat(
@@ -618,6 +795,10 @@ async def chat(payload: dict[str, Any]):
                 temperature=temperature,
                 max_tokens=max_tokens
             )
+            
+            llm_time = time.time() - llm_start
+            print(f"[Chat] LLM 调用耗时: {llm_time:.2f}秒")
+            
         except Exception as e:
             print(f"[Chat] LLM 调用失败: {e}")
             # 降级方案：返回简单响应
@@ -643,7 +824,8 @@ async def chat(payload: dict[str, Any]):
         
         return {
             "response": response,
-            "memories_used": len(memories)
+            "memories_used": len(memories),
+            "memory_used": memory_used  # ✅ 添加布尔标志
         }
         
     except Exception as e:
@@ -653,124 +835,4 @@ async def chat(payload: dict[str, Any]):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/chat/stream")
-async def chat_stream(payload: dict[str, Any]):
-    """
-    流式对话接口 - 支持 Server-Sent Events (已修复 v2)
-    
-    请求参数同 /chat
-    
-    返回: SSE 流
-    """
-    from fastapi.responses import StreamingResponse
-    import json
-    
-    async def generate():
-        try:
-            message = payload.get("message")
-            if not message:
-                yield f"data: {json.dumps({'error': 'message 参数不能为空'})}\n\n"
-                return
-            
-            history = payload.get("history", [])
-            personality = payload.get("personality", "friendly")
-            temperature = payload.get("temperature", 0.7)
-            max_tokens = payload.get("max_tokens", 2000)
-            retrieve_memories = payload.get("retrieve_memories", True)
-            
-            # 性格提示词 (同上)
-            personality_prompts = {
-                "friendly": "你是一个友好、温暖的桌面宠物助手,名叫 memPet。你会用轻松愉快的语气与用户交流,关心用户的工作和生活。",
-                "energetic": "你是一个充满活力、积极向上的桌面宠物助手,名叫 memPet。你总是充满热情,用鼓励的话语激励用户。",
-                "professional": "你是一个专业、高效的桌面助手,名叫 memPet。你会用简洁明了的语言提供帮助,注重效率和准确性。",
-                "tsundere": "你是一个表面高冷但内心温柔的桌面宠物,名叫 memPet。你会用略带傲娇的语气说话,但实际上很关心用户。",
-            }
-            
-            system_prompt = personality_prompts.get(personality, personality_prompts["friendly"])
-            system_prompt += "\n\n你具有记忆能力,可以记住与用户的对话历史和用户的活动。当用户提到过去的事情时,你可以回忆起来。\n\n回复时请注意:\n1. 保持简洁,避免过长的回复\n2. 使用自然、口语化的表达\n3. 适当使用 emoji 增加亲和力\n4. 如果用户问到你不知道的事情,诚实地说不知道\n5. 根据上下文和记忆提供个性化的回复"
-            
-            # 检索相关记忆
-            memories = []
-            if retrieve_memories:
-                try:
-                    retrieve_result = await service.retrieve(
-                        text=message,  # 使用 text 而不是 query
-                        limit=5,
-                        category="conversation"
-                    )
-                    memories = retrieve_result.get("result", [])
-                except Exception as e:
-                    print(f"[Chat] 检索记忆失败: {e}")
-            
-            # 注入记忆
-            if memories:
-                system_prompt += "\n\n相关记忆:\n"
-                for i, memory in enumerate(memories, 1):
-                    system_prompt += f"{i}. {memory.get('content', '')}\n"
-            
-            # 构建消息列表
-            messages = [{"role": "system", "content": system_prompt}]
-            for msg in history[-10:]:
-                messages.append({
-                    "role": msg.get("role", "user"),
-                    "content": msg.get("content", "")
-                })
-            messages.append({"role": "user", "content": message})
-            
-            # 构建完整的 prompt
-            full_prompt = system_prompt + "\n\n"
-            for msg in history[-10:]:
-                role = msg.get("role", "user")
-                content = msg.get("content", "")
-                full_prompt += f"{role}: {content}\n"
-            full_prompt += f"user: {message}\nassistant:"
-            
-            # 调用 LLM（使用普通 chat，然后模拟流式返回）
-            try:
-                llm_client = service._get_llm_client()
-                
-                # 调用普通 chat 方法
-                llm_response = await llm_client.chat(
-                    prompt=full_prompt,
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
-                
-                # 提取响应内容
-                if isinstance(llm_response, dict):
-                    full_response = llm_response.get("content", str(llm_response))
-                else:
-                    full_response = str(llm_response)
-                
-                # 模拟流式输出（按字符分块）
-                chunk_size = 5  # 每次发送 5 个字符
-                for i in range(0, len(full_response), chunk_size):
-                    chunk = full_response[i:i+chunk_size]
-                    yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n"
-                    # 添加小延迟模拟流式效果
-                    await asyncio.sleep(0.05)
-                
-                yield f"data: {json.dumps({'done': True})}\n\n"
-            except Exception as e:
-                print(f"[Chat Stream] 流式调用失败: {e}")
-                yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
-            
-            # 自动记忆对话 (暂时禁用，避免格式问题)
-            # try:
-            #     await service.memorize(
-            #         content=[
-            #             {"role": "user", "content": message},
-            #             {"role": "assistant", "content": full_response}
-            #         ],
-            #         category="conversation"
-            #     )
-            # except Exception as e:
-            #     print(f"[Chat] 自动记忆对话失败: {e}")
-                
-        except Exception as e:
-            print(f"[Chat Stream] 流式对话失败: {e}")
-            import traceback
-            traceback.print_exc()
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
-    
-    return StreamingResponse(generate(), media_type="text/event-stream")
+

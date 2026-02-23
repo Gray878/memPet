@@ -120,34 +120,28 @@ export class ChatService {
   }
 
   /**
-   * 流式对话 (使用普通 API + 前端模拟流式)
+   * 流式对话 (直接返回完整回复)
    */
   async chatStream(userMessage: string): Promise<void> {
     try {
-      console.log('[ChatService] 开始流式对话:', userMessage)
+      console.log('[ChatService] 开始对话:', userMessage)
 
       // 1. 检索相关记忆
       const relevantMemories = await this.retrieveRelevantMemories(userMessage)
+      console.log('[ChatService] 检索到相关记忆:', relevantMemories.length, '条')
 
       // 2. 构建消息列表
       const messages = this.buildMessages(userMessage, relevantMemories)
 
-      // 3. 调用普通 API (非流式)
+      // 3. 调用 LLM API
       const response = await this.callLLM(messages)
+      console.log('[ChatService] LLM 回复:', response)
 
-      // 4. 模拟流式输出 - 按字符分块发送
-      const chunkSize = 5 // 每次发送 5 个字符
-      for (let i = 0; i < response.length; i += chunkSize) {
-        const chunk = response.slice(i, i + chunkSize)
-        this.sendStreamChunk(chunk)
-        // 添加小延迟模拟流式效果
-        await new Promise(resolve => setTimeout(resolve, 50))
-      }
-
-      // 5. 发送完成信号
+      // 4. 发送完整回复给前端
+      this.sendStreamChunk(response)
       this.sendStreamComplete()
 
-      // 6. 更新对话历史
+      // 5. 更新对话历史
       this.conversationHistory.push(
         { role: 'user', content: userMessage },
         { role: 'assistant', content: response }
@@ -158,7 +152,7 @@ export class ChatService {
       }
 
     } catch (error: any) {
-      console.error('[ChatService] 流式对话失败:', error)
+      console.error('[ChatService] 对话失败:', error)
       this.sendStreamError(error.message)
     }
   }
@@ -239,87 +233,7 @@ export class ChatService {
     return data.response
   }
 
-  /**
-   * 调用流式 LLM API (通过 memU-server)
-   */
-  private async callLLMStream(messages: ChatMessage[], userMessage: string): Promise<void> {
-    // 提取历史
-    const history = messages.slice(1, -1).map(msg => ({
-      role: msg.role,
-      content: msg.content
-    }))
 
-    const response = await fetch(`http://127.0.0.1:8000/chat/stream`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: userMessage,
-        history,
-        personality: this.config.personality,
-        temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens,
-        retrieve_memories: true,
-      }),
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`memU-server 错误: ${response.status} ${error}`)
-    }
-
-    const reader = response.body?.getReader()
-    const decoder = new TextDecoder()
-    let fullResponse = ''
-
-    if (!reader) {
-      throw new Error('无法读取响应流')
-    }
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      const chunk = decoder.decode(value, { stream: true })
-      const lines = chunk.split('\n').filter(line => line.trim() !== '')
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6)
-
-          try {
-            const parsed = JSON.parse(data)
-            
-            if (parsed.chunk) {
-              fullResponse += parsed.chunk
-              this.sendStreamChunk(parsed.chunk)
-            } else if (parsed.done) {
-              // 流式完成
-              break
-            } else if (parsed.error) {
-              throw new Error(parsed.error)
-            }
-          } catch (e) {
-            console.error('[ChatService] 解析流数据失败:', e)
-          }
-        }
-      }
-    }
-
-    // 流式完成
-    this.sendStreamComplete()
-
-    // 更新对话历史
-    this.conversationHistory.push(
-      { role: 'user', content: userMessage },
-      { role: 'assistant', content: fullResponse }
-    )
-
-    if (this.conversationHistory.length > this.MAX_HISTORY) {
-      this.conversationHistory = this.conversationHistory.slice(-this.MAX_HISTORY)
-    }
-  }
 
   /**
    * 发送流式数据块

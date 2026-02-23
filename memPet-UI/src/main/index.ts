@@ -87,34 +87,6 @@ function createTray() {
     })
   }
 }
-        if (mainWindow) {
-          mainWindow.webContents.send('open-settings')
-        }
-      }
-    },
-    { type: 'separator' },
-    {
-      label: '退出',
-      click: () => {
-        app.quit()
-      }
-    }
-  ])
-  
-  tray.setToolTip('memPet - 桌面宠物')
-  tray.setContextMenu(contextMenu)
-  
-  // 双击托盘图标显示/隐藏窗口
-  tray.on('double-click', () => {
-    if (mainWindow) {
-      if (mainWindow.isVisible()) {
-        mainWindow.hide()
-      } else {
-        mainWindow.show()
-      }
-    }
-  })
-}
 
 // 初始化服务
 async function initializeServices() {
@@ -171,17 +143,6 @@ async function initializeServices() {
     registerChatHandlers(chatService)
     registerSettingsHandlers(configService, memUService)
     registerTrayHandlers(trayService, notificationService, shortcutService)
-    console.log('[Main] IPC 处理器注册成功')
-    
-    console.log('[Main] 所有服务初始化完成')
-    console.log('[Main] 对话服务启动成功')
-    
-    // 6. 注册 IPC 处理器
-    registerMemoryHandlers(memUService, autoMemoryService)
-    registerSystemHandlers(systemMonitor)
-    registerPetHandlers(memUService)
-    registerChatHandlers(chatService)
-    registerSettingsHandlers(configService, memUService)
     console.log('[Main] IPC 处理器注册成功')
     
     console.log('[Main] 所有服务初始化完成')

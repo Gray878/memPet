@@ -47,7 +47,7 @@ class ProactiveHelper:
         
         return False
 
-    def analyze_context(self, context: dict[str, Any]) -> list[dict[str, Any]]:
+    def analyze_context(self, context: dict[str, Any], check_cooldown: bool = True) -> list[dict[str, Any]]:
         """
         分析上下文，生成建议列表
         
@@ -60,6 +60,7 @@ class ProactiveHelper:
                 - idle_time: 空闲时间（秒）
                 - is_work_hours: 是否工作时间
                 - focus_level: 专注级别
+            check_cooldown: 是否检查冷却时间（默认 True，测试时可设为 False）
         
         Returns:
             建议列表，每个建议包含：
@@ -77,46 +78,50 @@ class ProactiveHelper:
         focus_level = context.get("focus_level", "NormalFocus")
         
         # 1. 疲劳提醒（高优先级）
-        if fatigue_level == "Exhausted" and self.should_trigger("fatigue_reminder"):
-            suggestions.append({
-                "type": "fatigue_reminder",
-                "priority": "high",
-                "message": "检测到极度疲劳",
-                "reason": f"连续工作 {working_duration // 3600} 小时",
-                "action": "建议立即休息 15-20 分钟"
-            })
-        elif fatigue_level == "Tired" and self.should_trigger("fatigue_reminder"):
-            suggestions.append({
-                "type": "fatigue_reminder",
-                "priority": "medium",
-                "message": "检测到疲劳",
-                "reason": f"连续工作 {working_duration // 3600} 小时",
-                "action": "建议休息 10 分钟"
-            })
+        if fatigue_level == "Exhausted":
+            if not check_cooldown or self.should_trigger("fatigue_reminder"):
+                suggestions.append({
+                    "type": "fatigue_reminder",
+                    "priority": "high",
+                    "message": "检测到极度疲劳",
+                    "reason": f"连续工作 {working_duration // 3600} 小时",
+                    "action": "建议立即休息 15-20 分钟"
+                })
+        elif fatigue_level == "Tired":
+            if not check_cooldown or self.should_trigger("fatigue_reminder"):
+                suggestions.append({
+                    "type": "fatigue_reminder",
+                    "priority": "medium",
+                    "message": "检测到疲劳",
+                    "reason": f"连续工作 {working_duration // 3600} 小时",
+                    "action": "建议休息 10 分钟"
+                })
         
         # 2. 深夜工作提醒（高优先级）
-        if is_late_night and self.should_trigger("late_night_reminder"):
-            suggestions.append({
-                "type": "late_night_reminder",
-                "priority": "high",
-                "message": "深夜工作提醒",
-                "reason": "已经很晚了",
-                "action": "建议早点休息，保持健康作息"
-            })
+        if is_late_night:
+            if not check_cooldown or self.should_trigger("late_night_reminder"):
+                suggestions.append({
+                    "type": "late_night_reminder",
+                    "priority": "high",
+                    "message": "深夜工作提醒",
+                    "reason": "已经很晚了",
+                    "action": "建议早点休息，保持健康作息"
+                })
         
         # 3. 空闲互动（低优先级）
-        if idle_time > 1800 and self.should_trigger("idle_interaction"):
-            suggestions.append({
-                "type": "idle_interaction",
-                "priority": "low",
-                "message": "空闲互动",
-                "reason": f"空闲了 {idle_time // 60} 分钟",
-                "action": "要不要聊聊天？"
-            })
+        if idle_time > 1800:
+            if not check_cooldown or self.should_trigger("idle_interaction"):
+                suggestions.append({
+                    "type": "idle_interaction",
+                    "priority": "low",
+                    "message": "空闲互动",
+                    "reason": f"空闲了 {idle_time // 60} 分钟",
+                    "action": "要不要聊聊天？"
+                })
         
         # 4. 定时休息建议（中优先级）
         if working_duration > 3600 and working_duration % 3600 < 300:  # 每小时提醒一次
-            if self.should_trigger("break_suggestion"):
+            if not check_cooldown or self.should_trigger("break_suggestion"):
                 suggestions.append({
                     "type": "break_suggestion",
                     "priority": "medium",
@@ -126,14 +131,15 @@ class ProactiveHelper:
                 })
         
         # 5. 喝水提醒（低优先级）
-        if working_duration > 3600 and self.should_trigger("hydration_reminder"):
-            suggestions.append({
-                "type": "hydration_reminder",
-                "priority": "low",
-                "message": "喝水提醒",
-                "reason": "工作一段时间了",
-                "action": "记得喝点水哦"
-            })
+        if working_duration > 3600:
+            if not check_cooldown or self.should_trigger("hydration_reminder"):
+                suggestions.append({
+                    "type": "hydration_reminder",
+                    "priority": "low",
+                    "message": "喝水提醒",
+                    "reason": "工作一段时间了",
+                    "action": "记得喝点水哦"
+                })
         
         # 按优先级排序
         priority_order = {"high": 0, "medium": 1, "low": 2}

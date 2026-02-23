@@ -131,7 +131,7 @@ export default function DevPanel() {
           {systemContext && (
             <div className="mt-2 p-2 bg-slate-800 rounded text-xs font-mono">
               <div>App: {systemContext.active_app}</div>
-              <div>Work: {Math.floor(systemContext.working_duration / 60)}m</div>
+              <div>Work: {systemContext.working_duration}s ({Math.floor(systemContext.working_duration / 60)}m {systemContext.working_duration % 60}s)</div>
               <div>Fatigue: {systemContext.fatigue_level}</div>
               <div>Focus: {systemContext.focus_level}</div>
             </div>
