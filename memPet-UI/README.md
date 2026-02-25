@@ -17,7 +17,7 @@
 # 安装依赖
 npm install
 
-# 启动开发服务器
+# 启动 Electron + Vite 开发环境
 npm run dev
 
 # 代码检查
@@ -29,6 +29,10 @@ npm run format
 # 构建应用
 npm run build
 ```
+
+常见问题：
+
+- 启动后是空白窗口：通常是 Electron 没连上 Vite（端口不一致或端口被占用）。请确保在 `memPet-UI` 目录运行 `npm run dev`，并检查 5173 端口是否可用。
 
 ## 项目结构
 

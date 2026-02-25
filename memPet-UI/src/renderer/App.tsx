@@ -124,6 +124,25 @@ function App() {
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-transparent">
+      {isDev && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 8,
+            left: 8,
+            zIndex: 99999,
+            background: 'rgba(17,24,39,0.9)',
+            color: '#fff',
+            padding: '2px 8px',
+            borderRadius: 6,
+            fontSize: 12,
+            fontFamily: 'monospace',
+          }}
+        >
+          Renderer OK
+        </div>
+      )}
+
       {/* Layer 1: 宠物主窗口 */}
       <div onClick={handlePetClick} onContextMenu={handleContextMenu}>
         <PetWindow />

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { MemUService } from './services/MemUService'
@@ -23,9 +23,13 @@ const __dirname = path.dirname(__filename)
 
 // 开发环境标识
 const isDev = process.env.NODE_ENV === 'development'
+const rawDevServerURL =
+  process.env.VITE_DEV_SERVER_URL ||
+  process.env.ELECTRON_RENDERER_URL ||
+  'http://127.0.0.1:5173/'
+const devServerURL = rawDevServerURL.replace('://localhost', '://127.0.0.1')
 
 let mainWindow: BrowserWindow | null = null
-let tray: Tray | null = null
 let configService: ConfigService | null = null
 let memUService: MemUService | null = null
 let systemMonitor: SystemMonitor | null = null
@@ -56,11 +60,76 @@ function createWindow() {
 
   // 调试：打印 preload 路径
   console.log('[Main] Preload path:', path.join(__dirname, '../preload/index.js'))
+  console.log('[Main] Raw dev server URL:', rawDevServerURL)
+  console.log('[Main] Dev server URL:', devServerURL)
+
+  mainWindow.webContents.on('did-start-loading', () => {
+    console.log('[Main] Renderer started loading')
+  })
+
+  mainWindow.webContents.on('dom-ready', () => {
+    console.log('[Main] Renderer DOM ready')
+  })
+
+  mainWindow.webContents.on('did-frame-finish-load', (_event, isMainFrame) => {
+    if (isMainFrame) {
+      console.log('[Main] Main frame finished load')
+    }
+  })
+
+  mainWindow.webContents.on('did-finish-load', async () => {
+    console.log('[Main] Renderer finished load')
+    try {
+      const diagnostics = await mainWindow?.webContents.executeJavaScript(`
+        ({
+          href: location.href,
+          title: document.title,
+          readyState: document.readyState,
+          hasRoot: !!document.getElementById('root'),
+          rootHtmlLength: document.getElementById('root')?.innerHTML?.length ?? -1
+        })
+      `)
+      console.log('[Main] Renderer diagnostics:', diagnostics)
+    } catch (error) {
+      console.error('[Main] Failed to read renderer diagnostics:', error)
+    }
+  })
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[Main] Renderer process gone:', details)
+  })
+
+  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    console.log(`[Renderer:${level}] ${message} (${sourceId}:${line})`)
+  })
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDesc, validatedURL) => {
+    console.error('[Main] Renderer load failed:', { errorCode, errorDesc, validatedURL })
+
+    if (isDev) {
+      const escapedURL = devServerURL.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      mainWindow?.loadURL(`data:text/html,${encodeURIComponent(`
+        <html>
+          <head><meta charset="UTF-8"><title>memPet 启动失败</title></head>
+          <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;padding:24px;line-height:1.6;">
+            <h2>前端页面加载失败</h2>
+            <p>Electron 无法连接到开发服务器：</p>
+            <pre style="background:#f3f4f6;padding:12px;border-radius:8px;">${escapedURL}</pre>
+            <p>请确认在 <code>memPet-UI</code> 目录运行的是 <code>npm run dev</code>，且端口未被占用。</p>
+          </body>
+        </html>
+      `)}`)
+    }
+  })
 
   mainWindow.setIgnoreMouseEvents(false)
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
+    mainWindow
+      .loadURL(devServerURL)
+      .catch((error) => {
+        console.error('[Main] loadURL failed:', error)
+      })
     mainWindow.webContents.openDevTools()
   } else {
     mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'))
@@ -86,34 +155,6 @@ function createTray() {
       proactiveEnabled: config.behavior.proactiveEnabled
     })
   }
-}
-        if (mainWindow) {
-          mainWindow.webContents.send('open-settings')
-        }
-      }
-    },
-    { type: 'separator' },
-    {
-      label: '退出',
-      click: () => {
-        app.quit()
-      }
-    }
-  ])
-  
-  tray.setToolTip('memPet - 桌面宠物')
-  tray.setContextMenu(contextMenu)
-  
-  // 双击托盘图标显示/隐藏窗口
-  tray.on('double-click', () => {
-    if (mainWindow) {
-      if (mainWindow.isVisible()) {
-        mainWindow.hide()
-      } else {
-        mainWindow.show()
-      }
-    }
-  })
 }
 
 // 初始化服务
@@ -171,17 +212,6 @@ async function initializeServices() {
     registerChatHandlers(chatService)
     registerSettingsHandlers(configService, memUService)
     registerTrayHandlers(trayService, notificationService, shortcutService)
-    console.log('[Main] IPC 处理器注册成功')
-    
-    console.log('[Main] 所有服务初始化完成')
-    console.log('[Main] 对话服务启动成功')
-    
-    // 6. 注册 IPC 处理器
-    registerMemoryHandlers(memUService, autoMemoryService)
-    registerSystemHandlers(systemMonitor)
-    registerPetHandlers(memUService)
-    registerChatHandlers(chatService)
-    registerSettingsHandlers(configService, memUService)
     console.log('[Main] IPC 处理器注册成功')
     
     console.log('[Main] 所有服务初始化完成')

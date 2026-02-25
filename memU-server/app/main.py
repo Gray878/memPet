@@ -11,7 +11,20 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from memu.app import MemoryService
 from memu.app.settings import CategoryConfig
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    AuthenticationError,
+    BadRequestError,
+    NotFoundError,
+    PermissionDeniedError,
+    RateLimitError,
+)
 
+from app.compat.memu_sqlite_patch import (
+    apply_memu_sqlite_pydantic_patch,
+    ensure_memu_sqlite_schema_columns,
+)
 from app.database import get_database_config
 from app.services.memory_adapter import MemoryAdapter
 from app.services.proactive_helper import ProactiveHelper
@@ -27,6 +40,46 @@ else:
     print(f"  提示: 可以复制 .env.example 为 .env 来配置")
 
 app = FastAPI(title="memU Server", version="0.1.0")
+
+
+def _extract_error_message(exc: Exception) -> str:
+    msg = getattr(exc, "message", None)
+    if isinstance(msg, str) and msg.strip():
+        return msg.strip()
+    text = str(exc).strip()
+    return text or exc.__class__.__name__
+
+
+def _raise_upstream_http_error(exc: Exception) -> None:
+    """将上游 LLM/Embedding 异常映射为可读的 HTTP 错误。"""
+    if isinstance(exc, APIConnectionError):
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "LLM 服务连接失败，请检查 OPENAI_BASE_URL 网络可达性、DNS/代理设置，"
+                "以及服务商地址是否正确（例如硅基流动应为 https://api.siliconflow.cn/v1）。"
+            ),
+        ) from exc
+    if isinstance(exc, AuthenticationError):
+        raise HTTPException(status_code=401, detail="LLM 鉴权失败，请检查 OPENAI_API_KEY。") from exc
+    if isinstance(exc, PermissionDeniedError):
+        raise HTTPException(
+            status_code=403,
+            detail="LLM 权限不足或账户不可用，请检查模型权限、实名认证与余额状态。",
+        ) from exc
+    if isinstance(exc, RateLimitError):
+        raise HTTPException(status_code=429, detail="LLM 请求频率超限，请稍后重试。") from exc
+    if isinstance(exc, (BadRequestError, NotFoundError)):
+        raise HTTPException(
+            status_code=400,
+            detail=f"LLM 请求参数错误：{_extract_error_message(exc)}",
+        ) from exc
+    if isinstance(exc, APIStatusError):
+        status_code = exc.status_code if isinstance(exc.status_code, int) else 502
+        raise HTTPException(
+            status_code=status_code,
+            detail=f"LLM 服务返回错误：{_extract_error_message(exc)}",
+        ) from exc
 
 # 检查必需的环境变量
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -92,34 +145,42 @@ except RuntimeError as e:
     raise RuntimeError(error_msg) from e
 
 # 初始化 MemoryService
-# 检测是否使用通义千问
-base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-is_qwen = "dashscope.aliyuncs.com" in base_url
+base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+base_url_lower = base_url.lower()
+is_dashscope = "dashscope.aliyuncs.com" in base_url_lower
+is_siliconflow = "siliconflow.cn" in base_url_lower
 
-if is_qwen:
-    # 通义千问配置
-    llm_profiles = {
-        "default": {
-            "provider": "openai",
-            "api_key": openai_api_key,
-            "base_url": base_url,
-            "chat_model": os.getenv("DEFAULT_LLM_MODEL", "qwen-plus"),
-            "embed_model": "text-embedding-v3",  # 通义千问的嵌入模型
-        }
-    }
-    print(f"✓ 使用通义千问")
+chat_model = os.getenv("DEFAULT_LLM_MODEL")
+embed_model = os.getenv("DEFAULT_EMBED_MODEL")
+provider_name = "OpenAI"
+
+if is_dashscope:
+    provider_name = "通义千问"
+    chat_model = chat_model or "qwen-plus"
+    embed_model = embed_model or "text-embedding-v3"
+elif is_siliconflow:
+    provider_name = "硅基流动"
+    chat_model = chat_model or "Qwen/Qwen3-8B"
+    # 参考硅基流动 embeddings 文档示例模型
+    embed_model = embed_model or "BAAI/bge-large-zh-v1.5"
 else:
-    # OpenAI 配置
-    llm_profiles = {
-        "default": {
-            "provider": "openai",
-            "api_key": openai_api_key,
-            "base_url": base_url,
-            "chat_model": os.getenv("DEFAULT_LLM_MODEL", "gpt-4o-mini"),
-            "embed_model": "text-embedding-3-small",  # OpenAI 的嵌入模型
-        }
+    chat_model = chat_model or "gpt-4o-mini"
+    embed_model = embed_model or "text-embedding-3-small"
+
+llm_profiles = {
+    "default": {
+        "provider": "openai",
+        "api_key": openai_api_key,
+        "base_url": base_url,
+        "chat_model": chat_model,
+        "embed_model": embed_model,
     }
-    print(f"✓ 使用 OpenAI")
+}
+print(f"✓ 使用{provider_name}")
+
+if provider == "sqlite":
+    if apply_memu_sqlite_pydantic_patch():
+        print("✓ 已应用 memu SQLite 兼容补丁")
 
 service = MemoryService(
     llm_profiles=llm_profiles,
@@ -131,6 +192,15 @@ service = MemoryService(
     #     ]
     # }
 )
+
+if provider == "sqlite":
+    patched_columns = ensure_memu_sqlite_schema_columns(dsn)
+    if patched_columns:
+        print("✓ 已自动补齐 SQLite 表字段:")
+        for col in patched_columns:
+            print(f"  - {col}")
+    else:
+        print("✓ SQLite 表字段检查通过")
 
 # 初始化桌面宠物适配器
 adapter = MemoryAdapter(service)
@@ -215,7 +285,8 @@ async def memorize(payload: dict[str, Any]):
         raise
     except Exception as exc:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        _raise_upstream_http_error(exc)
+        raise HTTPException(status_code=500, detail=f"存储失败：{_extract_error_message(exc)}") from exc
 
 
 @app.post("/retrieve")
@@ -271,7 +342,8 @@ async def retrieve(payload: dict[str, Any]):
         raise
     except Exception as exc:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        _raise_upstream_http_error(exc)
+        raise HTTPException(status_code=500, detail=f"检索失败：{_extract_error_message(exc)}") from exc
 
 
 @app.get("/")

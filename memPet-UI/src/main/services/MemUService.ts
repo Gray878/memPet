@@ -1,5 +1,5 @@
 import { spawn, ChildProcess } from 'child_process'
-import axios, { AxiosInstance } from 'axios'
+import axios, { AxiosError, AxiosInstance } from 'axios'
 import path from 'path'
 
 /**
@@ -24,6 +24,30 @@ export class MemUService {
       timeout: 30000,
       headers: { 'Content-Type': 'application/json' },
     })
+
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error: AxiosError<any>) => {
+        const detail =
+          error.response?.data?.detail ||
+          error.response?.data?.message ||
+          error.response?.data?.error
+
+        if (detail) {
+          return Promise.reject(new Error(String(detail)))
+        }
+
+        if (error.code === 'ECONNABORTED') {
+          return Promise.reject(new Error('请求超时，请稍后重试'))
+        }
+
+        if (error.code === 'ECONNREFUSED') {
+          return Promise.reject(new Error('无法连接 memU-server，请确认后端已启动'))
+        }
+
+        return Promise.reject(new Error(error.message || '请求失败'))
+      }
+    )
   }
 
   private getServerPath(): string {
@@ -72,7 +96,7 @@ export class MemUService {
     console.log('[MemUService] 服务启动成功')
   }
 
-  private async waitForReady(maxAttempts: number = 30): Promise<void> {
+  private async waitForReady(maxAttempts: number = 60): Promise<void> {
     for (let i = 0; i < maxAttempts; i++) {
       try {
         const response = await this.client.get('/')

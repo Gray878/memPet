@@ -27,6 +27,13 @@ memU-server 是为 memPet 桌面宠物应用定制的后端服务，基于 memU 
 OPENAI_API_KEY=sk-xxx
 OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 DEFAULT_LLM_MODEL=qwen-plus
+# DEFAULT_EMBED_MODEL=text-embedding-v3
+
+# 或：硅基流动（OpenAI 兼容）
+# OPENAI_API_KEY=sk-xxx
+# OPENAI_BASE_URL=https://api.siliconflow.cn/v1
+# DEFAULT_LLM_MODEL=Qwen/Qwen3-8B
+# DEFAULT_EMBED_MODEL=BAAI/bge-large-zh-v1.5
 
 # 数据库配置
 DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/memu
