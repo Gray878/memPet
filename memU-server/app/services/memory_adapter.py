@@ -59,7 +59,8 @@ class MemoryAdapter:
     async def memorize_conversation(
         self,
         content: list[dict[str, Any]],
-        file_path: str
+        file_path: str,
+        user_id: str | None = None  # ✅ 添加 user_id 参数
     ) -> dict[str, Any]:
         """
         存储对话记忆（标准场景）
@@ -67,20 +68,25 @@ class MemoryAdapter:
         Args:
             content: 对话内容列表
             file_path: JSON 文件路径
+            user_id: 用户 ID
         
         Returns:
             存储结果
         """
         # 调用 memU 核心库
+        # ✅ 关键修复：传递 user 参数
+        user_data = {"user_id": user_id} if user_id else None
         return await self.service.memorize(
             resource_url=file_path,
-            modality="conversation"
+            modality="conversation",
+            user=user_data  # ✅ 添加 user 参数
         )
 
     async def memorize_system_observation(
         self,
         observation: dict[str, Any],
-        storage_dir: str
+        storage_dir: str,
+        user_id: str | None = None  # ✅ 添加 user_id 参数
     ) -> dict[str, Any]:
         """
         存储系统观察记录（桌面宠物专用）
@@ -88,6 +94,7 @@ class MemoryAdapter:
         Args:
             observation: 观察记录
             storage_dir: 存储目录
+            user_id: 用户 ID
         
         Returns:
             存储结果
@@ -112,9 +119,12 @@ class MemoryAdapter:
             json.dump({"content": content}, f, ensure_ascii=False)
         
         # 调用 memU 核心库
+        # ✅ 关键修复：传递 user 参数
+        user_data = {"user_id": user_id} if user_id else None
         return await self.service.memorize(
             resource_url=str(file_path),
-            modality="conversation"
+            modality="conversation",
+            user=user_data  # ✅ 添加 user 参数
         )
 
     def _format_observation(self, obs: dict[str, Any]) -> str:
@@ -261,7 +271,8 @@ class MemoryAdapter:
     async def retrieve_for_proactive(
         self,
         context: dict[str, Any],
-        limit: int = 5
+        limit: int = 5,
+        user_id: str | None = None  # ✅ 添加 user_id 参数
     ) -> dict[str, Any]:
         """
         为主动推理场景检索记忆（桌面宠物专用）
@@ -276,6 +287,7 @@ class MemoryAdapter:
                 - is_late_night: 是否深夜
                 - idle_time: 空闲时间（秒）
             limit: 返回记忆数量限制（注意：memU 的 limit 在 RetrieveConfig 中配置）
+            user_id: 用户 ID（用于过滤）
         
         Returns:
             检索结果
@@ -316,8 +328,12 @@ class MemoryAdapter:
         
         # 调用 memU 检索
         try:
-            # 注意：memU 的 retrieve 方法不接受 limit 参数
-            result = await self.service.retrieve(queries)
+            # ✅ 关键修复：传递 where 参数
+            where_filter = {"user_id": user_id} if user_id else {}
+            result = await self.service.retrieve(
+                queries=queries,
+                where=where_filter  # ✅ 添加 where 参数
+            )
             return result
         except Exception as e:
             print(f"检索记忆失败: {e}")
@@ -328,7 +344,8 @@ class MemoryAdapter:
     async def retrieve_conversation_context(
         self,
         query: str,
-        limit: int = 3
+        limit: int = 3,
+        user_id: str | None = None  # ✅ 添加 user_id 参数
     ) -> dict[str, Any]:
         """
         为对话场景检索上下文记忆
@@ -336,6 +353,7 @@ class MemoryAdapter:
         Args:
             query: 用户查询
             limit: 返回记忆数量限制（注意：memU 的 limit 在 RetrieveConfig 中配置）
+            user_id: 用户 ID（用于过滤）
         
         Returns:
             检索结果
@@ -346,8 +364,12 @@ class MemoryAdapter:
                 "role": "user",
                 "content": {"text": query}
             }]
-            # 注意：memU 的 retrieve 方法不接受 limit 参数
-            result = await self.service.retrieve(queries)
+            # ✅ 关键修复：传递 where 参数
+            where_filter = {"user_id": user_id} if user_id else {}
+            result = await self.service.retrieve(
+                queries=queries,
+                where=where_filter  # ✅ 添加 where 参数
+            )
             return result
         except Exception as e:
             print(f"检索对话上下文失败: {e}")

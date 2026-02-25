@@ -84,17 +84,29 @@ export default function DevPanel() {
         return
       }
       
-      const result = await proactiveAnalyze(systemContext)
+      // 构造测试上下文（确保能触发建议）
+      const testContext = {
+        ...systemContext,
+        working_duration: 7200,  // 2小时
+        fatigue_level: 'Tired',  // 疲劳
+        is_late_night: false,
+        idle_time: 0,
+      }
+      
+      // 测试时跳过冷却机制
+      const result = await proactiveAnalyze(testContext, true)
       setTestResult(`✓ 主动推理成功: ${JSON.stringify(result, null, 2)}`)
       
       // 如果有建议，生成消息
       if (result.suggestions && result.suggestions.length > 0) {
         const message = await proactiveGenerate(
           result.suggestions[0],
-          systemContext,
+          testContext,
           'friendly'
         )
         setTestResult(prev => `${prev}\n\n✓ 生成消息: ${message.message}`)
+      } else {
+        setTestResult(prev => `${prev}\n\n⚠️ 无建议（当前状态正常）`)
       }
     } catch (err: any) {
       setTestResult(`✗ 失败: ${err.message}`)
@@ -131,7 +143,7 @@ export default function DevPanel() {
           {systemContext && (
             <div className="mt-2 p-2 bg-slate-800 rounded text-xs font-mono">
               <div>App: {systemContext.active_app}</div>
-              <div>Work: {Math.floor(systemContext.working_duration / 60)}m</div>
+              <div>Work: {systemContext.working_duration}s ({Math.floor(systemContext.working_duration / 60)}m {systemContext.working_duration % 60}s)</div>
               <div>Fatigue: {systemContext.fatigue_level}</div>
               <div>Focus: {systemContext.focus_level}</div>
             </div>

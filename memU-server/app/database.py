@@ -64,17 +64,33 @@ def get_database_config() -> dict:
                     f"请在 .env 文件中设置这些变量"
                 )
             
+            # 构建基础连接字符串（不包含连接池参数）
             database_url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{dbname}"
+        
+        # ✅ 连接池参数通过 engine_kwargs 传递给 SQLAlchemy
+        # 这些参数会被传递给 SessionManager，然后传递给 create_engine()
+        engine_kwargs = {
+            "pool_size": 10,           # 连接池大小：10个连接
+            "max_overflow": 20,        # 最大溢出：额外20个连接
+            "pool_recycle": 3600,      # 连接回收：1小时后回收
+            "pool_pre_ping": True,     # 连接前检查：使用前先ping（SessionManager 默认已启用）
+            "connect_args": {
+                "connect_timeout": 30,  # 连接超时：30秒（初始化需要更长时间）
+                "options": "-c statement_timeout=60000"  # SQL 语句超时：60秒
+            }
+        }
         
         return {
             "metadata_store": {
                 "provider": "postgres",
                 "ddl_mode": "create",
-                "dsn": database_url
+                "dsn": database_url,
+                "engine_kwargs": engine_kwargs,  # ✅ 传递连接池配置
             },
             "vector_index": {
                 "provider": "pgvector",
-                "dsn": database_url
+                "dsn": database_url,
+                "engine_kwargs": engine_kwargs,  # ✅ 向量索引也使用连接池
             }
         }
     

@@ -32,7 +32,12 @@ export const useChatStore = create<ChatState>((set) => ({
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1]
       if (lastMessage.role === 'assistant') {
-        lastMessage.content += content
+        // 如果是空消息，直接设置；否则追加
+        if (lastMessage.content === '') {
+          lastMessage.content = content
+        } else {
+          lastMessage.content += content
+        }
       }
     }
     return { messages }
