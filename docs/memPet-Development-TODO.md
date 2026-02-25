@@ -1,6 +1,8 @@
 # memPet 10天开发计划 TODO
 
-基于 Electron + React + memU-server 的桌面宠物应用开发计划
+基于 Electron + React + memPet-server 的桌面宠物应用开发计划
+
+> 2026-02-25 更新：执行架构已调整为 `memPet-desktop`（Tauri）+ `memPet-server`；本文件中的 Electron 任务项仅保留历史参考。
 
 ---
 
@@ -28,12 +30,12 @@
 
 ## Day 1: 项目准备与环境搭建
 
-- [ ] 阅读并理解所有项目文档 `[共同]`：memPet-Electron-Architecture.md；memPet-Features-Guide.md；memPet-Dual-Agent-Analysis.md；memU-server-Usage-Guide.md
+- [ ] 阅读并理解所有项目文档 `[共同]`：memPet-Electron-Architecture.md；memPet-Features-Guide.md；memPet-Dual-Agent-Analysis.md；memPet-server-Usage-Guide.md
 - [ ] 熟悉 memU 核心概念 `[HGH]`：理解三层架构（Resource → Memory Item → Category）；理解 memorize 和 retrieve API
 - [ ] 创建项目开发文档 `[共同]`：技术选型确认；开发规范文档；Git 工作流规范
 - [ ] 安装必要工具 `[共同]`：Node.js 20.x；Python 3.13+ `[HGH]`；uv 包管理器 `[HGH]`；VS Code + 插件
 - [ ] 初始化项目结构 `[nil-byte]`：创建 memPet 根目录；初始化 package.json；配置 TypeScript；配置 ESLint 和 Prettier
-- [ ] 测试 memU-server `[HGH]`：启动 memU-server；测试 /memorize 接口；测试 /retrieve 接口；验证数据存储
+- [ ] 测试 memPet-server `[HGH]`：启动 memPet-server；测试 /memorize 接口；测试 /retrieve 接口；验证数据存储
 - [ ] 初始化 Electron 项目 `[nil-byte]`：安装 Electron 依赖；配置 electron-builder；创建主进程入口文件
 - [ ] 配置 Vite 构建 `[nil-byte]`：安装 vite-plugin-electron；配置开发服务器；测试热重载
 
@@ -158,7 +160,7 @@
 
 **Day 7 完成度：100%** ✅  
 **测试结果**: 所有核心功能测试通过，前端集成验证成功  
-**文档**: `memU-server/DAY7-CHAT-COMPLETION-SUMMARY.md`
+**文档**: `memPet-server/DAY7-CHAT-COMPLETION-SUMMARY.md`
 
 ---
 
@@ -252,8 +254,8 @@
 
 ### 后端技术
 - Node.js 20.x - 主进程运行时
-- memU-server - 记忆服务
-- Python 3.13+ - memU-server 运行环境
+- memPet-server - 记忆服务
+- Python 3.13+ - memPet-server 运行环境
 - uv - Python 包管理器
 - axios 1.x - HTTP 客户端
 
@@ -342,9 +344,9 @@ memPet/
 │       │   └── electron.d.ts
 │       └── utils/
 │           └── helpers.ts
-├── memU-server/            # memU 服务器（子模块）
+├── memPet-server/            # memU 服务器（子模块）
 ├── resources/              # 资源文件
-│   ├── memu-server.exe    # 打包的 memU-server
+│   ├── memu-server.exe    # 打包的 memPet-server
 │   ├── models/            # Live2D 模型
 │   └── icons/             # 应用图标
 ├── scripts/               # 构建脚本
@@ -360,8 +362,8 @@ memPet/
 
 ## 开发注意事项
 
-### 1. memU-server 集成
-- memU-server 作为子进程启动
+### 1. memPet-server 集成
+- memPet-server 作为子进程启动
 - 使用 HTTP API 通信
 - 需要处理服务启动失败的情况
 - 数据存储在用户目录
@@ -474,7 +476,7 @@ memPet/
 - [Electron 官方文档](https://www.electronjs.org/docs)
 - [React 官方文档](https://react.dev/)
 - [memU 项目文档](../memU/README.md)
-- [memU-server 使用指南](./memU-server-Usage-Guide.md)
+- [memPet-server 使用指南](./memPet-server-Usage-Guide.md)
 - [memPet 架构文档](./memPet-Electron-Architecture.md)
 - [memPet 功能指南](./memPet-Features-Guide.md)
 

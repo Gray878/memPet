@@ -1,6 +1,8 @@
 # memPet Electron 完整技术方案
 
 > 基于 Electron + React + Python memU 的桌面宠物应用
+>
+> 2026-02-25 更新：主运行链路已切换为 `memPet-desktop`（Tauri）；`memPet-UI` 进入冻结维护，仅作参考实现。
 
 ---
 
@@ -67,7 +69,7 @@
                                     │
                                     ▼
                     ┌───────────────────────────────┐
-                    │   memU-server Service         │
+                    │   memPet-server Service         │
                     │   (子进程)                    │
                     ├───────────────────────────────┤
                     │                               │
@@ -113,8 +115,8 @@
 | 技术 | 版本 | 用途 |
 |------|------|------|
 | Node.js | 20.x | 主进程运行时 |
-| Python | 3.13+ | memU-server 运行时 |
-| memU-server | latest | 后端 API 服务 |
+| Python | 3.13+ | memPet-server 运行时 |
+| memPet-server | latest | 后端 API 服务 |
 | memu-py | 1.2.0+ | 记忆引擎核心库 |
 | SQLite | 3.x | 本地数据库 |
 | axios | 1.x | HTTP 客户端 |
@@ -182,7 +184,7 @@ memPet/
 │           ├── logger.ts                  # 日志工具
 │           └── config.ts                  # 配置管理
 │
-├── memU-server/                  # memU-server 后端服务
+├── memPet-server/                  # memPet-server 后端服务
 │   ├── app/                               # FastAPI 应用
 │   │   ├── main.py                        # 服务入口
 │   │   ├── database.py                    # 数据库配置
@@ -191,12 +193,12 @@ memPet/
 │   └── README.md
 │
 ├── resources/                    # 资源文件
-│   ├── memu-server.exe                    # 打包的 memU-server（Windows）
+│   ├── memu-server.exe                    # 打包的 memPet-server（Windows）
 │   ├── models/                            # Live2D 模型
 │   └── icons/                             # 应用图标
 │
 ├── scripts/                      # 构建脚本
-│   ├── build-server.js                    # 打包 memU-server
+│   ├── build-server.js                    # 打包 memPet-server
 │   └── build-electron.js                  # 打包 Electron
 │
 ├── electron-builder.json         # Electron 打包配置
@@ -548,7 +550,7 @@ await window.electron.setPersonality({
                               │ HTTP
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ memU-server Service                                             │
+│ memPet-server Service                                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  POST /retrieve                                                 │
@@ -581,7 +583,7 @@ await window.electron.setPersonality({
 
 ## 实现细节
 
-### 1. 主进程 - memU-server 服务管理
+### 1. 主进程 - memPet-server 服务管理
 
 ```typescript
 // src/main/services/MemUService.ts
@@ -636,10 +638,10 @@ export class MemUService {
   }
 
   /**
-   * 启动 memU-server 服务
+   * 启动 memPet-server 服务
    */
   async start(): Promise<void> {
-    console.log('启动 memU-server 服务...');
+    console.log('启动 memPet-server 服务...');
 
     // 确保数据目录存在
     await fs.ensureDir(this.dataDir);
@@ -651,7 +653,7 @@ export class MemUService {
       : path.join(process.resourcesPath, 'memu-server.exe');  // 生产环境使用打包的 exe
 
     const args = isDev
-      ? ['fastapi', 'dev', path.join(__dirname, '../../memU-server/app/main.py')]
+      ? ['fastapi', 'dev', path.join(__dirname, '../../memPet-server/app/main.py')]
       : [];
 
     // 启动子进程
@@ -662,25 +664,25 @@ export class MemUService {
         OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',  // 需要配置
         DATABASE_URL: `sqlite:///${path.join(this.dataDir, 'memory.db')}`,  // SQLite 数据库
       },
-      cwd: isDev ? path.join(__dirname, '../../memU-server') : undefined,
+      cwd: isDev ? path.join(__dirname, '../../memPet-server') : undefined,
     });
 
     // 监听输出
     this.process.stdout?.on('data', (data) => {
-      console.log(`[memU-server] ${data.toString()}`);
+      console.log(`[memPet-server] ${data.toString()}`);
     });
 
     this.process.stderr?.on('data', (data) => {
-      console.error(`[memU-server Error] ${data.toString()}`);
+      console.error(`[memPet-server Error] ${data.toString()}`);
     });
 
     this.process.on('exit', (code) => {
-      console.log(`memU-server 服务退出，代码: ${code}`);
+      console.log(`memPet-server 服务退出，代码: ${code}`);
     });
 
     // 等待服务就绪
     await this.waitForReady();
-    console.log('✓ memU-server 服务已启动');
+    console.log('✓ memPet-server 服务已启动');
   }
 
   /**
@@ -695,7 +697,7 @@ export class MemUService {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
-    throw new Error('memU-server 服务启动超时');
+    throw new Error('memPet-server 服务启动超时');
   }
 
   /**
@@ -737,7 +739,7 @@ export class MemUService {
     if (this.process) {
       this.process.kill();
       this.process = null;
-      console.log('✓ memU-server 服务已停止');
+      console.log('✓ memPet-server 服务已停止');
     }
   }
 
@@ -1425,19 +1427,19 @@ const fs = require('fs-extra');
 const path = require('path');
 
 async function buildMemUServer() {
-  console.log('开始打包 memU-server 服务...');
+  console.log('开始打包 memPet-server 服务...');
 
-  const serverDir = path.join(__dirname, '../memU-server');
+  const serverDir = path.join(__dirname, '../memPet-server');
   const outputDir = path.join(__dirname, '../resources');
 
   // 确保输出目录存在
   await fs.ensureDir(outputDir);
 
-  // 进入 memU-server 目录
+  // 进入 memPet-server 目录
   process.chdir(serverDir);
 
   // 安装依赖
-  console.log('安装 memU-server 依赖...');
+  console.log('安装 memPet-server 依赖...');
   execSync('uv sync', { stdio: 'inherit' });
   execSync('uv pip install pyinstaller', { stdio: 'inherit' });
 
@@ -1461,7 +1463,7 @@ async function buildMemUServer() {
   console.log('复制到 resources 目录...');
   await fs.copy(exePath, targetPath);
 
-  console.log('✓ memU-server 服务打包完成');
+  console.log('✓ memPet-server 服务打包完成');
 }
 
 buildMemUServer().catch((error) => {
@@ -1484,7 +1486,7 @@ buildMemUServer().catch((error) => {
   "main": "dist-electron/main/index.js",
   "scripts": {
     "dev": "vite",
-    "dev:server": "cd memU-server && uv run fastapi dev",
+    "dev:server": "cd memPet-server && uv run fastapi dev",
     "build": "npm run build:server && npm run build:electron",
     "build:server": "node scripts/build-server.js",
     "build:electron": "tsc && vite build && electron-builder",
@@ -1529,16 +1531,16 @@ cd memPet
 npm install
 
 # 3. 安装 Python 依赖（需要先安装 uv）
-cd memU-server
+cd memPet-server
 uv sync
 cd ..
 
 # 4. 配置环境变量
-# 创建 memU-server/.env 文件
-echo "OPENAI_API_KEY=your_api_key_here" > memU-server/.env
+# 创建 memPet-server/.env 文件
+echo "OPENAI_API_KEY=your_api_key_here" > memPet-server/.env
 
 # 5. 启动开发服务器
-# 终端 1: 启动 memU-server
+# 终端 1: 启动 memPet-server
 npm run dev:server
 
 # 终端 2: 启动 Electron
@@ -1548,7 +1550,7 @@ npm run dev
 ### 生产环境打包
 
 ```bash
-# 1. 打包 memU-server 服务
+# 1. 打包 memPet-server 服务
 npm run build:server
 
 # 2. 打包 Electron 应用
@@ -1666,7 +1668,7 @@ CREATE TABLE resources (
 
 主要挑战：
 
-1. **打包体积较大**：~200MB（包含 Electron + Python + memU-server）
+1. **打包体积较大**：~200MB（包含 Electron + Python + memPet-server）
 2. **内存占用**：200-350MB
 3. **跨平台打包**：需要在各平台分别打包
 4. **依赖管理**：需要配置 OPENAI_API_KEY 等环境变量
@@ -1675,10 +1677,10 @@ CREATE TABLE resources (
 
 ---
 
-## 与 memU-server 集成的优势
+## 与 memPet-server 集成的优势
 
-1. **标准化 API**：使用 memU-server 提供的标准 REST API
-2. **简化维护**：memU-server 独立维护和更新
+1. **标准化 API**：使用 memPet-server 提供的标准 REST API
+2. **简化维护**：memPet-server 独立维护和更新
 3. **功能完整**：直接使用 memu-py 核心库的所有功能
 4. **数据持久化**：支持 SQLite 本地存储和 PostgreSQL 扩展
-5. **易于调试**：可以独立测试 memU-server 服务
+5. **易于调试**：可以独立测试 memPet-server 服务

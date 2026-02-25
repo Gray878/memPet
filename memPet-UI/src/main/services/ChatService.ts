@@ -109,7 +109,7 @@ export class ChatService {
         this.conversationHistory = this.conversationHistory.slice(-this.MAX_HISTORY)
       }
 
-      // 5. 自动记忆对话 (memU-server 已自动处理)
+      // 5. 自动记忆对话 (memPet-server 已自动处理)
 
       return response
 
@@ -163,7 +163,7 @@ export class ChatService {
   private async retrieveRelevantMemories(query: string): Promise<any[]> {
     try {
       const result = await this.memUService.retrieveConversation(query, 5)
-      return result.memories || []
+      return result?.data?.items || result?.result?.items || result?.items || result?.memories || []
     } catch (error) {
       console.error('[ChatService] 检索记忆失败:', error)
       return []
@@ -199,7 +199,7 @@ export class ChatService {
   }
 
   /**
-   * 调用 LLM API (通过 memU-server)
+   * 调用 LLM API (通过 memPet-server)
    */
   private async callLLM(messages: ChatMessage[]): Promise<string> {
     // 提取用户消息和历史
@@ -226,11 +226,11 @@ export class ChatService {
 
     if (!response.ok) {
       const error = await response.text()
-      throw new Error(`memU-server 错误: ${response.status} ${error}`)
+      throw new Error(`memPet-server 错误: ${response.status} ${error}`)
     }
 
     const data = await response.json()
-    return data.response
+    return data?.data?.response ?? data?.response ?? ''
   }
 
 

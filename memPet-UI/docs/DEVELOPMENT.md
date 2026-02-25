@@ -156,7 +156,7 @@ memPet-UI/
 
 - [ ] Electron 主进程实现
 - [ ] IPC 通信机制
-- [ ] memU-server 集成
+- [ ] memPet-server 集成
 - [ ] LLM API 调用
 - [ ] 系统监控功能
 - [ ] Live2D 宠物动画

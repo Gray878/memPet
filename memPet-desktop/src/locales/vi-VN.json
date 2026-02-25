@@ -1,0 +1,210 @@
+{
+  "pages": {
+    "main": {
+      "hints": {
+        "redrawing": "Đang đổi kích thước..."
+      }
+    },
+    "chat": {
+      "hints": {
+        "emptyState": "Trò chuyện với thú cưng của bạn ✨",
+        "inputPlaceholder": "Nhập tin nhắn...",
+        "streamMode": "Bật chế độ phản hồi theo luồng",
+        "composerHint": "Enter để gửi, Shift + Enter để xuống dòng",
+        "enterHint": "Enter để gửi",
+        "clearConfirm": "Xóa toàn bộ tin nhắn trong cuộc trò chuyện?",
+        "copySuccess": "Đã sao chép",
+        "copyFailed": "Sao chép thất bại"
+      },
+      "status": {
+        "online": "Trực tuyến",
+        "offline": "Ngoại tuyến"
+      },
+      "labels": {
+        "messageCount": "tin nhắn",
+        "memoriesUsed": "ký ức",
+        "stream": "Stream"
+      },
+      "buttons": {
+        "clearHistory": "Xóa lịch sử trò chuyện",
+        "clear": "Xóa",
+        "copy": "Sao chép",
+        "sending": "Đang gửi..."
+      }
+    },
+    "preference": {
+      "title": "Tùy chỉnh",
+      "cat": {
+        "title": "Mèo",
+        "labels": {
+          "modelSettings": "Cài đặt Mô hình",
+          "mirrorMode": "Chế độ gương",
+          "singleMode": "Chỉ hiển thị phím cuối cùng",
+          "mouseMirror": "Phản chiếu chuột",
+          "windowSettings": "Cài đặt Cửa sổ",
+          "passThrough": "Click xuyên",
+          "alwaysOnTop": "Luôn trên cùng",
+          "windowSize": "Kích thước",
+          "windowRadius": "Độ bo tròn cửa sổ",
+          "opacity": "Độ mờ",
+          "autoReleaseDelay": "Độ trễ tự động nhả phím",
+          "hideOnHover": "Ẩn khi di chuột",
+          "position": "Vị trí cửa sổ"
+        },
+        "hints": {
+          "mirrorMode": "Bật để lật ngang mô hình.",
+          "singleMode": "Khi bật, mỗi tay mèo chỉ hiển thị phím vừa nhấn cuối cùng (tránh hiện nhiều tay khi nhấn nhiều phím cùng lúc).",
+          "mouseMirror": "Khi bật, chuột của mô hình sẽ phản chiếu theo chuyển động chuột thực tế.",
+          "passThrough": "Bật để cửa sổ không ảnh hưởng đến thao tác trên ứng dụng khác.",
+          "alwaysOnTop": "Bật để cửa sổ luôn nằm trên ứng dụng khác.",
+          "windowSize": "Di chuyển chuột đến mép cửa sổ hoặc giữ Shift và kéo chuột phải để thay đổi kích thước.",
+          "autoReleaseDelay": "Do Windows không bắt được sự kiện nhả của một số phím hệ thống, các phím đó sẽ được tự động xem như đã nhả sau khi hết thời gian chờ.",
+          "hideOnHover": "Khi bật, cửa sổ sẽ ẩn khi chuột di chuyển vào.",
+          "position": "Có hiệu lực sau khi khởi động ứng dụng hoặc khi tham số này, kích thước cửa sổ, mô hình hoặc độ phân giải màn hình thay đổi."
+        },
+        "options": {
+          "topLeft": "Góc trên cùng bên trái",
+          "topRight": "Góc trên cùng bên phải",
+          "bottomLeft": "Góc dưới cùng bên trái",
+          "bottomRight": "Góc dưới cùng bên phải"
+        }
+      },
+      "general": {
+        "title": "Chung",
+        "labels": {
+          "appSettings": "Cài đặt ứng dụng",
+          "launchOnStartup": "Khởi động cùng hệ thống",
+          "showTaskbarIcon": "Hiện biểu tượng trên thanh tác vụ (icon taskbar)",
+          "appearanceSettings": "Cài đặt giao diện",
+          "themeMode": "Giao diện",
+          "language": "Ngôn ngữ",
+          "updateSettings": "Cài đặt cập nhật",
+          "autoCheckUpdate": "Tự động kiểm tra cập nhật",
+          "permissionsSettings": "Cài đặt quyền",
+          "inputMonitoringPermission": "Quyền giám sát đầu vào"
+        },
+        "options": {
+          "auto": "Theo hệ thống",
+          "lightMode": "Sáng",
+          "darkMode": "Tối"
+        },
+        "hints": {
+          "showTaskbarIcon": "Bật để có thể quay cửa sổ qua OBS.",
+          "inputMonitoringPermission": "Bật quyền giám sát để nhận sự kiện bàn phím và chuột từ hệ thống nhằm phản hồi thao tác của bạn.",
+          "inputMonitoringPermissionGuide": "Nếu quyền đã được bật, hãy chọn nó và nhấn nút \"-\" để xóa. Sau đó thêm lại thủ công và khởi động lại ứng dụng để đảm bảo quyền được áp dụng."
+        },
+        "status": {
+          "authorized": "Đã cấp quyền",
+          "authorize": "Đi đến Bật"
+        },
+        "buttons": {
+          "openNow": "Mở ngay",
+          "openLater": "Mở sau"
+        }
+      },
+      "model": {
+        "title": "Mô hình",
+        "labels": {
+          "deleteModel": "Xóa mô hình"
+        },
+        "hints": {
+          "deleteSuccess": "Xóa thành công",
+          "deleteModel": "Bạn chắc muốn xóa mô hình này?",
+          "importSuccess": "Nhập thành công",
+          "clickOrDragToImport": "Nhấp hoặc kéo tệp vào đây"
+        },
+        "tooltips": {
+          "createModel": "Tạo mô hình",
+          "convertModel": "Chuyển đổi mô hình",
+          "moreModels": "Khám phá mô hình khác"
+        }
+      },
+      "shortcut": {
+        "title": "Phím tắt",
+        "labels": {
+          "toggleCat": "Ẩn/Hiện Mèo",
+          "togglePreferences": "Mở Tùy chỉnh",
+          "mirrorMode": "Chế độ gương",
+          "passThrough": "Click xuyên",
+          "alwaysOnTop": "Luôn trên cùng"
+        },
+        "hints": {
+          "toggleCat": "Bật/Tắt cửa sổ mèo.",
+          "togglePreferences": "Bật/Tắt cửa sổ tùy chỉnh.",
+          "mirrorMode": "Bật/Tắt chế độ gương.",
+          "passThrough": "Bật/Tắt cho phép click xuyên cửa sổ mèo.",
+          "alwaysOnTop": "Bật/Tắt luôn giữ cửa sổ mèo trên cùng."
+        }
+      },
+      "about": {
+        "title": "Giới thiệu",
+        "labels": {
+          "aboutApp": "Thông tin ứng dụng",
+          "appLog": "Nhật ký ứng dụng",
+          "appInfo": "Thông tin ứng dụng",
+          "openSource": "Mã nguồn"
+        },
+        "hints": {
+          "appInfo": "Sao chép thông tin để gửi bug.",
+          "copySuccess": "Đã sao chép"
+        },
+        "buttons": {
+          "checkUpdate": "Kiểm tra cập nhật",
+          "copy": "Sao chép",
+          "feedbackIssues": "Báo lỗi",
+          "viewLog": "Xem nhật ký"
+        }
+      }
+    }
+  },
+  "components": {
+    "proShortcut": {
+      "hints": {
+        "pressRecordShortcut": "Nhấn phím/tổ hợp phím để ghi",
+        "clickRecordShortcut": "Click để ghi phím tắt"
+      }
+    },
+    "updateApp": {
+      "title": "Đã tìm thấy phiên bản mới 🥳",
+      "labels": {
+        "updateVersion": "Phiên bản: ",
+        "updateTime": "Thời gian cập nhật: ",
+        "changelog": "Nhật ký thay đổi: "
+      },
+      "hints": {
+        "checkingUpdates": "Đang kiểm tra cập nhật...",
+        "alreadyLatest": "Bạn đang dùng phiên bản mới nhất 🎉"
+      },
+      "buttons": {
+        "updateNow": "Cập nhật ngay",
+        "updateLater": "Để sau"
+      }
+    }
+  },
+  "composables": {
+    "useSharedMenu": {
+      "labels": {
+        "chat": "Mở trò chuyện...",
+        "preference": "Tùy chỉnh...",
+        "hideCat": "Ẩn Mèo",
+        "showCat": "Hiện Mèo",
+        "passThrough": "Click xuyên",
+        "windowSize": "Kích thước",
+        "opacity": "Độ mờ"
+      }
+    },
+    "useTray": {
+      "checkUpdate": "Kiểm tra cập nhật",
+      "openSource": "Mã nguồn",
+      "restartApp": "Khởi động lại",
+      "quitApp": "Thoát"
+    }
+  },
+  "utils": {
+    "live2d": {
+      "hints": {
+        "notFound": "Không tìm thấy tệp cấu hình chính của mô hình, vui lòng xác nhận các tệp mô hình có đầy đủ không."
+      }
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MemPet",
+  "version": "../package.json",
+  "identifier": "com.mempet.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "MemPet",
+        "url": "index.html/#/",
+        "shadow": false,
+        "alwaysOnTop": true,
+        "transparent": true,
+        "decorations": false,
+        "acceptFirstMouse": true,
+        "skipTaskbar": true,
+        "maximizable": false
+      },
+      {
+        "label": "chat",
+        "title": "memPet Chat",
+        "url": "index.html/#/chat",
+        "visible": false,
+        "width": 460,
+        "height": 680,
+        "minWidth": 400,
+        "minHeight": 500,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "resizable": true,
+        "skipTaskbar": true
+      },
+      {
+        "label": "preference",
+        "url": "index.html/#/preference",
+        "visible": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": null,
+      "dangerousDisableAssetCspModification": true,
+      "assetProtocol": {
+        "enable": true,
+        "scope": {
+          "allow": ["**/*"],
+          "requireLiteralLeadingDot": false
+        }
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "category": "Entertainment",
+    "createUpdaterArtifacts": true,
+    "targets": ["nsis", "dmg", "app", "appimage", "deb", "rpm"],
+    "shortDescription": "MemPet Desktop",
+    "externalBin": [
+      "binaries/memPet-server"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": ["assets/tray.png", "assets/models", "backend-runtime/memPet-server"]
+  },
+  "plugins": {
+    "updater": {
+      "dangerousInsecureTransportProtocol": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVBRjJFMzE3MjEwMUZEMTAKUldRUS9RRWhGK1B5NmdkemhKcUFrVjZBQXlzdExpakdWVEJDeU9XckVsbzV2cFIycVJOempWa2UK",
+      "endpoints": [
+        "http://api.upgrade.toolsetlink.com/v1/tauri/upgrade?tauriKey=KtGlsZUVXmWfjkRKCuqpfw&versionName={{current_version}}&target={{target}}&arch={{arch}}&appointVersionName=&devModelKey=&devKey=",
+        "https://gh-proxy.com/github.com/ayangweb/BongoCat/releases/latest/download/latest.json"
+      ]
+    },
+    "fs": {
+      "requireLiteralLeadingDot": false
+    }
+  }
+}

@@ -3,7 +3,7 @@ import axios, { AxiosError, AxiosInstance } from 'axios'
 import path from 'path'
 
 /**
- * memU-server 服务管理类
+ * memPet-server 服务管理类
  */
 export class MemUService {
   private process: ChildProcess | null = null
@@ -42,7 +42,7 @@ export class MemUService {
         }
 
         if (error.code === 'ECONNREFUSED') {
-          return Promise.reject(new Error('无法连接 memU-server，请确认后端已启动'))
+          return Promise.reject(new Error('无法连接 memPet-server，请确认后端已启动'))
         }
 
         return Promise.reject(new Error(error.message || '请求失败'))
@@ -52,9 +52,9 @@ export class MemUService {
 
   private getServerPath(): string {
     if (process.env.NODE_ENV === 'development') {
-      return path.join(process.cwd(), '..', 'memU-server')
+      return path.join(process.cwd(), '..', 'memPet-server')
     }
-    return path.join(process.resourcesPath, 'memU-server')
+    return path.join(process.resourcesPath, 'memPet-server')
   }
 
   async start(): Promise<void> {
@@ -63,7 +63,7 @@ export class MemUService {
       return
     }
 
-    console.log('[MemUService] 启动 memU-server...')
+    console.log('[MemUService] 启动 memPet-server...')
     
     // 设置环境变量禁用彩色输出和 Rich 库
     const env = {
@@ -100,7 +100,11 @@ export class MemUService {
     for (let i = 0; i < maxAttempts; i++) {
       try {
         const response = await this.client.get('/')
-        if (response.data.status === 'running') {
+        const serverStatus =
+          response.data?.data?.server_status ||
+          response.data?.server_status ||
+          response.data?.status
+        if (serverStatus === 'running') {
           this.isReady = true
           return
         }
@@ -109,7 +113,7 @@ export class MemUService {
       }
       await new Promise(resolve => setTimeout(resolve, 1000))
     }
-    throw new Error('memU-server 启动超时')
+    throw new Error('memPet-server 启动超时')
   }
 
   private startHealthCheck(): void {

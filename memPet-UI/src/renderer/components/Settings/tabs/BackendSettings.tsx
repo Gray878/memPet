@@ -49,7 +49,7 @@ export default function BackendSettings() {
       <div className="settings-section">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-slate-800">memU-server 状态</h3>
+            <h3 className="text-sm font-semibold text-slate-800">memPet-server 状态</h3>
             <p className="text-xs text-slate-500 mt-1">后台记忆服务</p>
           </div>
           <div className={`px-3 py-1 rounded-full text-xs font-medium ${

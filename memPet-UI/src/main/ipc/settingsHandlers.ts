@@ -105,7 +105,7 @@ export function registerSettingsHandlers(
     }
   })
 
-  // 获取 memU-server 状态
+  // 获取 memPet-server 状态
   ipcMain.handle('settings:get-server-status', async () => {
     try {
       const isRunning = memUService.isRunning()
@@ -116,7 +116,7 @@ export function registerSettingsHandlers(
     }
   })
 
-  // 重启 memU-server
+  // 重启 memPet-server
   ipcMain.handle('settings:restart-server', async () => {
     try {
       await memUService.restart()

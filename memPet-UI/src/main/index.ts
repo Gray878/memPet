@@ -167,10 +167,10 @@ async function initializeServices() {
     await configService.load()
     console.log('[Main] 配置加载成功')
     
-    // 1. 启动 memU-server
+    // 1. 启动 memPet-server
     memUService = new MemUService()
     await memUService.start()
-    console.log('[Main] memU-server 启动成功')
+    console.log('[Main] memPet-server 启动成功')
     
     // 2. 启动系统监控
     systemMonitor = new SystemMonitor(memUService)
@@ -221,7 +221,7 @@ async function initializeServices() {
     const { dialog } = await import('electron')
     dialog.showErrorBox(
       'memPet 启动失败',
-      `服务初始化失败：${error}\n\n请检查：\n1. memU-server 是否正确配置\n2. 环境变量是否设置\n3. 数据库是否运行`
+      `服务初始化失败：${error}\n\n请检查：\n1. memPet-server 是否正确配置\n2. 环境变量是否设置\n3. 数据库是否运行`
     )
     app.quit()
   }
@@ -258,7 +258,7 @@ async function cleanupServices() {
   
   if (memUService) {
     await memUService.stop()
-    console.log('[Main] memU-server 已停止')
+    console.log('[Main] memPet-server 已停止')
   }
 }
 

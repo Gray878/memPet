@@ -1,0 +1,1524 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "memPet Server",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/memorize": {
+      "post": {
+        "summary": "Memorize",
+        "description": "存储记忆（支持对话和系统观察两种类型）\n\n对话记忆格式:\n{\n    \"user_id\": \"test_user\",\n    \"messages\": [\n        {\n            \"role\": \"user\",\n            \"content\": \"消息内容\"\n        },\n        {\n            \"role\": \"assistant\",\n            \"content\": \"回复内容\"\n        }\n    ]\n}\n\n系统观察格式:\n{\n    \"type\": \"system_observation\",\n    \"observation\": {\n        \"type\": \"app_switch\",\n        \"app\": \"VSCode\",\n        \"duration\": 3600,\n        \"timestamp\": \"2024-02-12T10:00:00\"\n    }\n}",
+        "operationId": "memorize_memorize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemorizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_MemorizeData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/retrieve": {
+      "post": {
+        "summary": "Retrieve",
+        "description": "检索相关记忆（支持对话和主动推理两种场景）\n\n对话场景格式:\n{\n    \"scenario\": \"conversation\",\n    \"user_id\": \"test_user\",\n    \"query\": \"查询文本\",\n    \"limit\": 3\n}\n\n主动推理场景格式:\n{\n    \"scenario\": \"proactive\",\n    \"context\": {\n        \"working_duration\": 7200,\n        \"active_app\": \"VSCode\",\n        \"fatigue_level\": \"Tired\",\n        \"is_late_night\": false,\n        \"idle_time\": 0\n    },\n    \"limit\": 5\n}",
+        "operationId": "retrieve_retrieve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetrieveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_RetrieveData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "description": "健康检查接口",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_RootData_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "description": "健康检查接口（详细版本）",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_HealthData_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batch/observations": {
+      "post": {
+        "summary": "Batch Observations",
+        "description": "批量添加系统观察记录到缓冲区。",
+        "operationId": "batch_observations_batch_observations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchObservationsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_BatchObservationsData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batch/flush": {
+      "post": {
+        "summary": "Batch Flush",
+        "description": "强制刷新观察记录缓冲区。",
+        "operationId": "batch_flush_batch_flush_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_BatchFlushData_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/proactive/analyze": {
+      "post": {
+        "summary": "Proactive Analyze",
+        "description": "主动推理分析接口\n\n分析当前上下文，生成建议列表\n\n请求格式:\n{\n    \"context\": {\n        \"working_duration\": 7200,\n        \"active_app\": \"VSCode\",\n        \"fatigue_level\": \"Tired\",\n        \"is_late_night\": false,\n        \"idle_time\": 0,\n        \"is_work_hours\": true,\n        \"focus_level\": \"NormalFocus\"\n    }\n}\n\n返回格式:\n{\n    \"status\": \"success\",\n    \"suggestions\": [\n        {\n            \"type\": \"fatigue_reminder\",\n            \"priority\": \"high\",\n            \"message\": \"检测到疲劳\",\n            \"reason\": \"连续工作 2 小时\",\n            \"action\": \"建议休息 10 分钟\"\n        }\n    ]\n}",
+        "operationId": "proactive_analyze_proactive_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProactiveAnalyzeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_ProactiveAnalyzeData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/proactive/generate": {
+      "post": {
+        "summary": "Proactive Generate",
+        "description": "生成主动推理消息\n\n根据建议和相关记忆，生成自然语言消息\n\n请求格式:\n{\n    \"suggestion\": {\n        \"type\": \"fatigue_reminder\",\n        \"priority\": \"high\",\n        \"message\": \"检测到疲劳\",\n        \"reason\": \"连续工作 2 小时\",\n        \"action\": \"建议休息 10 分钟\"\n    },\n    \"context\": {\n        \"working_duration\": 7200,\n        \"fatigue_level\": \"Tired\"\n    },\n    \"personality\": \"friendly\",\n    \"limit\": 3\n}\n\n返回格式:\n{\n    \"status\": \"success\",\n    \"message\": \"主人已经工作 2 小时了，要不要休息一下眼睛呀？\",\n    \"memories\": [...]\n}",
+        "operationId": "proactive_generate_proactive_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProactiveGenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_ProactiveGenerateData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/proactive/quick": {
+      "post": {
+        "summary": "Proactive Quick",
+        "description": "快捷主动推理接口 - 一步完成分析和生成\n\n自动分析上下文，选择最高优先级的建议，并生成自然语言消息\n\n请求格式:\n{\n    \"context\": {\n        \"working_duration\": 7200,\n        \"active_app\": \"VSCode\",\n        \"fatigue_level\": \"Tired\",\n        \"is_late_night\": false,\n        \"idle_time\": 0,\n        \"is_work_hours\": true,\n        \"focus_level\": \"NormalFocus\"\n    },\n    \"personality\": \"friendly\",\n    \"limit\": 3\n}\n\n返回格式:\n{\n    \"status\": \"success\",\n    \"message\": \"主人已经工作 2 小时了，要不要休息一下眼睛呀？\",\n    \"suggestion\": {\n        \"type\": \"fatigue_reminder\",\n        \"priority\": \"high\",\n        \"message\": \"检测到疲劳\",\n        \"reason\": \"连续工作 2 小时\",\n        \"action\": \"建议休息 10 分钟\"\n    },\n    \"memories\": [...]\n}",
+        "operationId": "proactive_quick_proactive_quick_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProactiveQuickRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_ProactiveQuickData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/proactive/cooldown": {
+      "get": {
+        "summary": "Proactive Cooldown",
+        "description": "获取冷却状态\n\n返回所有建议类型的冷却状态\n\n返回格式:\n{\n    \"status\": \"success\",\n    \"cooldowns\": {\n        \"fatigue_reminder\": {\n            \"cooldown_seconds\": 1800,\n            \"remaining_seconds\": 600,\n            \"can_trigger\": false,\n            \"last_triggered\": \"2024-02-15T10:00:00\"\n        }\n    }\n}",
+        "operationId": "proactive_cooldown_proactive_cooldown_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_CooldownData_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/proactive/cooldown/reset": {
+      "post": {
+        "summary": "Proactive Cooldown Reset",
+        "description": "重置主动推理冷却时间。",
+        "operationId": "proactive_cooldown_reset_proactive_cooldown_reset_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProactiveCooldownResetRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_CooldownResetData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat": {
+      "post": {
+        "summary": "Chat",
+        "description": "对话接口 - 支持记忆增强的 AI 对话\n\n请求参数:\n- message: 用户消息\n- history: 对话历史 (可选)\n- personality: 性格类型 (可选: friendly, energetic, professional, tsundere)\n- temperature: 温度参数 (可选, 默认 0.7)\n- max_tokens: 最大 token 数 (可选, 默认 2000)\n- retrieve_memories: 是否检索相关记忆 (可选, 默认 True)\n\n返回:\n- response: AI 回复\n- memories_used: 使用的记忆数量",
+        "operationId": "chat_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_ChatData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/stream": {
+      "post": {
+        "summary": "Chat Stream",
+        "description": "流式对话接口 - 使用 SSE (Server-Sent Events) 返回打字机效果\n\n请求参数:\n- message: 用户消息（必需）\n- history: 对话历史（可选）\n- personality: 性格类型（可选: friendly, energetic, professional, tsundere）\n- temperature: 温度参数（可选, 默认 0.7）\n- max_tokens: 最大 token 数（可选, 默认 2000）\n- retrieve_memories: 是否检索相关记忆（可选, 默认 True）\n\nSSE 事件类型:\n- metadata: 元数据事件（包含 memories_used, memory_used）\n- chunk: 内容片段（包含 content 字段）\n- complete: 完成事件\n- error: 错误事件\n\n示例用法(JavaScript):\n    import { fetchEventSource } from '@microsoft/fetch-event-source';\n    await fetchEventSource('/chat/stream', {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ message: '你好' }),\n        onmessage(ev) {\n            console.log(ev.event, ev.data);\n        },\n    });",
+        "operationId": "chat_stream_chat_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatStreamRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiEnvelope_BatchFlushData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BatchFlushData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[BatchFlushData]"
+      },
+      "ApiEnvelope_BatchObservationsData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BatchObservationsData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[BatchObservationsData]"
+      },
+      "ApiEnvelope_ChatData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChatData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[ChatData]"
+      },
+      "ApiEnvelope_CooldownData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CooldownData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[CooldownData]"
+      },
+      "ApiEnvelope_CooldownResetData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CooldownResetData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[CooldownResetData]"
+      },
+      "ApiEnvelope_HealthData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HealthData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[HealthData]"
+      },
+      "ApiEnvelope_MemorizeData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemorizeData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[MemorizeData]"
+      },
+      "ApiEnvelope_ProactiveAnalyzeData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProactiveAnalyzeData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[ProactiveAnalyzeData]"
+      },
+      "ApiEnvelope_ProactiveGenerateData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProactiveGenerateData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[ProactiveGenerateData]"
+      },
+      "ApiEnvelope_ProactiveQuickData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProactiveQuickData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[ProactiveQuickData]"
+      },
+      "ApiEnvelope_RetrieveData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RetrieveData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[RetrieveData]"
+      },
+      "ApiEnvelope_RootData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RootData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[RootData]"
+      },
+      "BatchFlushData": {
+        "properties": {
+          "flushed": {
+            "type": "boolean",
+            "title": "Flushed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "BatchFlushData"
+      },
+      "BatchObservationsData": {
+        "properties": {
+          "accepted": {
+            "type": "integer",
+            "title": "Accepted",
+            "default": 0
+          },
+          "buffered": {
+            "type": "integer",
+            "title": "Buffered",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "BatchObservationsData"
+      },
+      "BatchObservationsRequest": {
+        "properties": {
+          "observations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Observations"
+          }
+        },
+        "type": "object",
+        "title": "BatchObservationsRequest"
+      },
+      "ChatData": {
+        "properties": {
+          "response": {
+            "type": "string",
+            "title": "Response"
+          },
+          "memories_used": {
+            "type": "integer",
+            "title": "Memories Used"
+          },
+          "memory_used": {
+            "type": "boolean",
+            "title": "Memory Used"
+          }
+        },
+        "type": "object",
+        "required": [
+          "response",
+          "memories_used",
+          "memory_used"
+        ],
+        "title": "ChatData"
+      },
+      "ChatRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "history": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "personality": {
+            "type": "string",
+            "title": "Personality",
+            "default": "friendly"
+          },
+          "temperature": {
+            "type": "number",
+            "title": "Temperature",
+            "default": 0.7
+          },
+          "max_tokens": {
+            "type": "integer",
+            "title": "Max Tokens",
+            "default": 2000
+          },
+          "retrieve_memories": {
+            "type": "boolean",
+            "title": "Retrieve Memories",
+            "default": true
+          },
+          "use_memory": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Use Memory"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ChatRequest"
+      },
+      "ChatStreamRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "history": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "personality": {
+            "type": "string",
+            "title": "Personality",
+            "default": "friendly"
+          },
+          "temperature": {
+            "type": "number",
+            "title": "Temperature",
+            "default": 0.7
+          },
+          "max_tokens": {
+            "type": "integer",
+            "title": "Max Tokens",
+            "default": 2000
+          },
+          "retrieve_memories": {
+            "type": "boolean",
+            "title": "Retrieve Memories",
+            "default": true
+          },
+          "use_memory": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Use Memory"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ChatStreamRequest"
+      },
+      "CooldownData": {
+        "properties": {
+          "cooldowns": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Cooldowns"
+          }
+        },
+        "type": "object",
+        "title": "CooldownData"
+      },
+      "CooldownResetData": {
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "cooldowns": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Cooldowns"
+          }
+        },
+        "type": "object",
+        "title": "CooldownResetData"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthData": {
+        "properties": {
+          "server_status": {
+            "type": "string",
+            "title": "Server Status"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "database": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Database"
+          },
+          "llm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm"
+          }
+        },
+        "type": "object",
+        "required": [
+          "server_status",
+          "version"
+        ],
+        "title": "HealthData"
+      },
+      "MemorizeData": {
+        "properties": {
+          "result": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Result"
+          }
+        },
+        "type": "object",
+        "title": "MemorizeData"
+      },
+      "MemorizeRequest": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "conversation",
+              "system_observation"
+            ],
+            "title": "Type",
+            "default": "conversation"
+          },
+          "messages": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Messages"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          },
+          "observation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observation"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "type": "object",
+        "title": "MemorizeRequest"
+      },
+      "ProactiveAnalyzeData": {
+        "properties": {
+          "suggestions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Suggestions"
+          }
+        },
+        "type": "object",
+        "title": "ProactiveAnalyzeData"
+      },
+      "ProactiveAnalyzeRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Context"
+          },
+          "skip_cooldown": {
+            "type": "boolean",
+            "title": "Skip Cooldown",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ProactiveAnalyzeRequest"
+      },
+      "ProactiveCooldownResetRequest": {
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          }
+        },
+        "type": "object",
+        "title": "ProactiveCooldownResetRequest"
+      },
+      "ProactiveGenerateData": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "memories": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Memories"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "prompt"
+        ],
+        "title": "ProactiveGenerateData"
+      },
+      "ProactiveGenerateRequest": {
+        "properties": {
+          "suggestion": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Suggestion"
+          },
+          "context": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Context"
+          },
+          "personality": {
+            "type": "string",
+            "title": "Personality",
+            "default": "friendly"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "default": 3
+          }
+        },
+        "type": "object",
+        "title": "ProactiveGenerateRequest"
+      },
+      "ProactiveQuickData": {
+        "properties": {
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "suggestion": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggestion"
+          },
+          "memories": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Memories"
+          }
+        },
+        "type": "object",
+        "title": "ProactiveQuickData"
+      },
+      "ProactiveQuickRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Context"
+          },
+          "personality": {
+            "type": "string",
+            "title": "Personality",
+            "default": "friendly"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "default": 3
+          }
+        },
+        "type": "object",
+        "title": "ProactiveQuickRequest"
+      },
+      "RetrieveData": {
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/RetrieveResultData"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "title": "RetrieveData"
+      },
+      "RetrieveRequest": {
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "conversation",
+              "proactive"
+            ],
+            "title": "Scenario",
+            "default": "conversation"
+          },
+          "query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query"
+          },
+          "context": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Context"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "default": 5
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "type": "object",
+        "title": "RetrieveRequest"
+      },
+      "RetrieveResultData": {
+        "properties": {
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "categories": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Categories"
+          },
+          "resources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Resources"
+          }
+        },
+        "type": "object",
+        "title": "RetrieveResultData"
+      },
+      "RootData": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "server_status": {
+            "type": "string",
+            "title": "Server Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "version",
+          "server_status"
+        ],
+        "title": "RootData"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

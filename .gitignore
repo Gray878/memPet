@@ -1,12 +1,12 @@
-# memU-server 相关文件
-memU-server/_local/
-memU-server/data/
-memU-server/docs/source
-memU-server/config/secrets
-memU-server/.secrets/
-memU-server/node_modules
-memU-server/.venv
-memU-server/.env
+# memPet-server 相关文件
+memPet-server/_local/
+memPet-server/data/
+memPet-server/docs/source
+memPet-server/config/secrets
+memPet-server/.secrets/
+memPet-server/node_modules
+memPet-server/.venv
+memPet-server/.env
 
 # From https://raw.githubusercontent.com/github/gitignore/main/Python.gitignore
 

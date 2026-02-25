@@ -1,0 +1,10 @@
+{
+  "identifier": "com.mempet.desktop",
+  "bundle": {
+    "resources": [
+      "assets/tray-mac.png",
+      "assets/models",
+      "backend-runtime/memPet-server"
+    ]
+  }
+}

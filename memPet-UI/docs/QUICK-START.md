@@ -91,7 +91,7 @@ npm run dev
    - 全局快捷键
 
 2. **后端集成**
-   - memU-server API 调用
+   - memPet-server API 调用
    - LLM API 集成
    - 真实的记忆存储和检索
 
@@ -151,7 +151,7 @@ A: 是的,当前使用简单的圆形占位符,后续会集成 Live2D。
 A: 当前只是前端界面,没有连接真实的 LLM API,消息会显示但不会有回复。
 
 ### Q: 记忆浏览器是空的?
-A: 当前没有真实数据,需要集成 memU-server 后才会有记忆数据。
+A: 当前没有真实数据,需要集成 memPet-server 后才会有记忆数据。
 
 ## 下一步开发
 
@@ -167,7 +167,7 @@ A: 当前没有真实数据,需要集成 memU-server 后才会有记忆数据。
    - 实现消息处理器
    - 连接前端和后端
 
-3. **集成 memU-server** (`src/main/services/`)
+3. **集成 memPet-server** (`src/main/services/`)
    - 实现 API 客户端
    - 添加错误处理
    - 实现离线队列
