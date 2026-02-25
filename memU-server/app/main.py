@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from memu.app import MemoryService
+from sse_starlette.sse import EventSourceResponse
 from memu.app.settings import CategoryConfig
 from openai import (
     APIConnectionError,
@@ -905,6 +906,176 @@ async def chat(payload: dict[str, Any]):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+async def stream_chat_response(
+    message: str,
+    history: list[dict[str, Any]],
+    personality: str,
+    temperature: float,
+    max_tokens: int,
+    retrieve_memories: bool
+):
+    """
+    生成流式对话响应
+    
+    先获取完整响应，然后分段发送（模拟打字机效果）
+    """
+    try:
+        # 1. 检索相关记忆
+        memories = []
+        memory_used = False
+        
+        if retrieve_memories:
+            try:
+                queries = [{
+                    "role": "user",
+                    "content": {"text": message}
+                }]
+                
+                retrieve_result = await service.retrieve(queries=queries)
+                items = retrieve_result.get("items", [])
+                if items:
+                    memory_used = True
+                    memories = items[:5]
+                    print(f"[Chat Stream] 检索到 {len(memories)} 条相关记忆")
+            except Exception as e:
+                print(f"[Chat Stream] 检索记忆失败: {e}")
+        
+        # 2. 构建系统提示词
+        personality_prompts = {
+            "friendly": "你是一个友好、温暖的桌面宠物助手,名叫 memPet。你会用轻松愉快的语气与用户交流,关心用户的工作和生活。",
+            "energetic": "你是一个充满活力、积极向上的桌面宠物助手,名叫 memPet。你总是充满热情,用鼓励的话语激励用户。",
+            "professional": "你是一个专业、高效的桌面助手,名叫 memPet。你会用简洁明了的语言提供帮助,注重效率和准确性。",
+            "tsundere": "你是一个表面高冷但内心温柔的桌面宠物,名叫 memPet。你会用略带傲娇的语气说话,但实际上很关心用户。",
+        }
+        
+        system_prompt = personality_prompts.get(personality, personality_prompts["friendly"])
+        system_prompt += "\n\n你具有记忆能力,可以记住与用户的对话历史和用户的活动。当用户提到过去的事情时,你可以回忆起来。\n\n回复时请注意:\n1. 保持简洁,避免过长的回复\n2. 使用自然、口语化的表达\n3. 适当使用 emoji 增加亲和力\n4. 如果用户问到你不知道的事情,诚实地说不知道\n5. 根据上下文和记忆提供个性化的回复"
+        
+        # 注入记忆到系统提示词
+        if memories:
+            system_prompt += "\n\n【相关记忆】\n"
+            for i, memory in enumerate(memories, 1):
+                summary = memory.get('summary', '')
+                system_prompt += f"{i}. {summary}\n"
+            system_prompt += "\n请基于以上记忆回答用户的问题。"
+        
+        # 3. 构建完整 prompt
+        full_prompt = system_prompt + "\n\n"
+        for msg in history[-10:]:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            full_prompt += f"{role}: {content}\n"
+        full_prompt += f"user: {message}\nassistant:"
+        
+        # 4. 调用 LLM 获取完整响应
+        try:
+            llm_client = service._get_llm_client()
+            llm_response = await llm_client.chat(
+                prompt=full_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+        except Exception as e:
+            print(f"[Chat Stream] LLM 调用失败: {e}")
+            llm_response = "抱歉，我现在无法回复。请稍后再试。"
+        
+        # 提取响应内容
+        if isinstance(llm_response, dict):
+            response = llm_response.get("content", str(llm_response))
+        else:
+            response = str(llm_response)
+        
+        # 5. 流式发送响应（模拟打字机效果）
+        # 发送元数据事件
+        yield {
+            "event": "metadata",
+            "data": json.dumps({
+                "memories_used": len(memories),
+                "memory_used": memory_used
+            })
+        }
+        
+        # 分段发送内容（每段 1-3 个字符，模拟打字）
+        chunk_size = 2
+        for i in range(0, len(response), chunk_size):
+            chunk = response[i:i + chunk_size]
+            yield {
+                "event": "chunk",
+                "data": json.dumps({"content": chunk})
+            }
+            # 控制打字速度（每字符约 30-50ms）
+            await asyncio.sleep(0.04)
+        
+        # 发送完成事件
+        yield {
+            "event": "complete",
+            "data": json.dumps({"finished": True})
+        }
+        
+    except Exception as e:
+        print(f"[Chat Stream] 流式响应失败: {e}")
+        import traceback
+        traceback.print_exc()
+        yield {
+            "event": "error",
+            "data": json.dumps({"error": str(e)})
+        }
+
+
+@app.post("/chat/stream")
+async def chat_stream(payload: dict[str, Any]):
+    """
+    流式对话接口 - 使用 SSE (Server-Sent Events) 返回打字机效果
+    
+    请求参数:
+    - message: 用户消息（必需）
+    - history: 对话历史（可选）
+    - personality: 性格类型（可选: friendly, energetic, professional, tsundere）
+    - temperature: 温度参数（可选, 默认 0.7）
+    - max_tokens: 最大 token 数（可选, 默认 2000）
+    - retrieve_memories: 是否检索相关记忆（可选, 默认 True）
+    
+    SSE 事件类型:
+    - metadata: 元数据事件（包含 memories_used, memory_used）
+    - chunk: 内容片段（包含 content 字段）
+    - complete: 完成事件
+    - error: 错误事件
+    
+    示例用法(JavaScript):
+        const eventSource = new EventSource('/chat/stream', {
+            method: 'POST',
+            body: JSON.stringify({ message: "你好" })
+        });
+        eventSource.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.event === 'chunk') {
+                console.log(data.content);
+            }
+        };
+    """
+    message = payload.get("message", "")
+    if not message:
+        raise HTTPException(status_code=400, detail="message 参数不能为空")
+    
+    history = payload.get("history", [])
+    personality = payload.get("personality", "friendly")
+    temperature = payload.get("temperature", 0.7)
+    max_tokens = payload.get("max_tokens", 2000)
+    retrieve_memories = payload.get("retrieve_memories", payload.get("use_memory", True))
+    
+    return EventSourceResponse(
+        stream_chat_response(
+            message=message,
+            history=history,
+            personality=personality,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            retrieve_memories=retrieve_memories
+        ),
+        media_type="text/event-stream"
+    )
 
 
 

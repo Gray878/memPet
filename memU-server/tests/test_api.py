@@ -252,6 +252,81 @@ def test_chat():
     print(f"\n对话统计: {success_count}/{len(test_cases)} 成功")
     return success_count > 0
 
+def test_chat_stream():
+    """测试 POST /chat/stream - 流式对话"""
+    print_section("4. POST /chat/stream - 流式对话 (SSE)")
+    
+    test_data = {
+        "message": "你好，请介绍一下自己",
+        "personality": "friendly",
+        "use_memory": True
+    }
+    
+    print("\n测试: 流式对话")
+    print("  连接 SSE 流...")
+    
+    try:
+        # 使用 stream=True 来接收 SSE 流
+        response = requests.post(
+            f"{BASE_URL}/chat/stream",
+            json=test_data,
+            timeout=90,
+            stream=True
+        )
+        
+        if response.status_code == 200:
+            full_content = []
+            event_count = {"metadata": 0, "chunk": 0, "complete": 0, "error": 0}
+            
+            # 逐行读取 SSE 流
+            for line in response.iter_lines():
+                if not line:
+                    continue
+                    
+                line = line.decode('utf-8')
+                
+                # 解析 SSE 格式
+                if line.startswith('event: '):
+                    event_type = line[7:]
+                    continue
+                    
+                if line.startswith('data: '):
+                    data_str = line[6:]
+                    try:
+                        data = json.loads(data_str)
+                        
+                        if event_type == 'metadata':
+                            event_count["metadata"] += 1
+                            print(f"  ✓ 元数据: {data}")
+                        elif event_type == 'chunk':
+                            event_count["chunk"] += 1
+                            content = data.get('content', '')
+                            full_content.append(content)
+                            # 每 10 个 chunk 打印一次进度
+                            if event_count["chunk"] % 10 == 0:
+                                print(f"  ... 已接收 {event_count['chunk']} 个片段")
+                        elif event_type == 'complete':
+                            event_count["complete"] += 1
+                            print(f"  ✓ 完成事件 received")
+                        elif event_type == 'error':
+                            event_count["error"] += 1
+                            print(f"  ✗ 错误: {data}")
+                    except json.JSONDecodeError:
+                        pass
+            
+            full_text = ''.join(full_content)
+            print(f"\n  ✓ 流式对话成功")
+            print(f"    事件统计: {event_count}")
+            print(f"    完整回复 ({len(full_text)} 字): {full_text[:100]}...")
+            return True
+        else:
+            print(f"  ✗ 流式对话失败: {response.status_code}")
+            print(f"     {response.text}")
+            return False
+    except Exception as e:
+        print(f"  ✗ 请求失败: {e}")
+        return False
+
 def test_proactive_analyze():
     """测试 POST /proactive/analyze - 主动推理分析"""
     print_section("5. POST /proactive/analyze - 主动推理分析")
@@ -472,17 +547,20 @@ def main():
     # 3. 对话
     results['chat'] = test_chat()
     
-    # 4. 主动推理分析
+    # 4. 流式对话
+    results['chat_stream'] = test_chat_stream()
+    
+    # 6. 主动推理分析
     analyze_success, suggestion = test_proactive_analyze()
     results['proactive_analyze'] = analyze_success
     
-    # 5. 生成主动推理消息（使用 analyze 返回的建议）
+    # 7. 生成主动推理消息（使用 analyze 返回的建议）
     results['proactive_generate'] = test_proactive_generate(suggestion)
     
-    # 6. 快捷主动推理
+    # 8. 快捷主动推理
     results['proactive_quick'] = test_proactive_quick()
     
-    # 7. 冷却状态
+    # 9. 冷却状态
     results['proactive_cooldown'] = test_proactive_cooldown()
     
     # 总结
