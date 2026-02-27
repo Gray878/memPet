@@ -38,6 +38,8 @@ export type ProactiveQuickData = NonNullable<Schemas['ApiEnvelope_ProactiveQuick
 export type CooldownData = NonNullable<Schemas['ApiEnvelope_CooldownData_']['data']>
 export type CooldownResetData = NonNullable<Schemas['ApiEnvelope_CooldownResetData_']['data']>
 export type ChatData = NonNullable<Schemas['ApiEnvelope_ChatData_']['data']>
+export type MemoriesListData = NonNullable<Schemas['ApiEnvelope_MemoriesListData_']['data']>
+export type MemoriesStatsData = NonNullable<Schemas['ApiEnvelope_MemoriesStatsData_']['data']>
 
 export type MemorizeConversationRequest = OperationRequest<'memorize_memorize_post'>
 export type MemorizeObservationRequest = OperationRequest<'memorize_memorize_post'>
@@ -261,6 +263,19 @@ export class MemPetApiClient {
         throw err
       },
     })
+  }
+
+  listMemories(params: { type?: string; limit?: number; offset?: number } = {}) {
+    const query = new URLSearchParams()
+    if (params.type) query.append('type', params.type)
+    if (params.limit !== undefined) query.append('limit', String(params.limit))
+    if (params.offset !== undefined) query.append('offset', String(params.offset))
+    const queryStr = query.toString()
+    return this.request<OperationResponse<'list_memory_log_memory_log_get'>>(`/memory-log${queryStr ? `?${queryStr}` : ''}`)
+  }
+
+  getMemoriesStats() {
+    return this.request<OperationResponse<'get_memory_log_stats_memory_log_stats_get'>>('/memory-log/stats')
   }
 }
 

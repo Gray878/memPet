@@ -361,6 +361,118 @@
         }
       }
     },
+    "/memory-log": {
+      "get": {
+        "summary": "List Memory Log",
+        "description": "查询记忆日志列表（用于记忆管理界面）\n\n参数:\n- limit: 返回数量限制 (1-200, 默认 50)\n- offset: 偏移量 (默认 0)\n- type: 记忆类型 (all, conversation, system_observation, 默认 all)\n- start_date: 开始日期 (可选)\n- end_date: 结束日期 (可选)\n\n返回格式:\n{\n    \"status\": \"success\",\n    \"data\": {\n        \"items\": [\n            {\n                \"id\": \"uuid\",\n                \"type\": \"conversation\",\n                \"content\": \"我今天写了500行代码\",\n                \"summary\": \"用户分享工作进展\",\n                \"created_at\": \"2024-02-27T18:30:00\",\n                \"metadata\": {}\n            }\n        ],\n        \"total\": 150,\n        \"has_more\": true\n    }\n}",
+        "operationId": "list_memory_log_memory_log_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all",
+              "title": "Type"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_MemoriesListData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/memory-log/stats": {
+      "get": {
+        "summary": "Get Memory Log Stats",
+        "description": "获取记忆日志统计信息\n\n返回格式:\n{\n    \"status\": \"success\",\n    \"data\": {\n        \"total_memories\": 150,\n        \"conversations\": 50,\n        \"observations\": 100,\n        \"today_count\": 20,\n        \"storage_size\": \"2.5 MB\"\n    }\n}",
+        "operationId": "get_memory_log_stats_memory_log_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_MemoriesStatsData_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/chat": {
       "post": {
         "summary": "Chat",
@@ -655,6 +767,78 @@
         },
         "type": "object",
         "title": "ApiEnvelope[HealthData]"
+      },
+      "ApiEnvelope_MemoriesListData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemoriesListData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[MemoriesListData]"
+      },
+      "ApiEnvelope_MemoriesStatsData_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "title": "Status",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemoriesStatsData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "ApiEnvelope[MemoriesStatsData]"
       },
       "ApiEnvelope_MemorizeData_": {
         "properties": {
@@ -1126,6 +1310,62 @@
         ],
         "title": "HealthData"
       },
+      "MemoriesListData": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "default": 0
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "MemoriesListData",
+        "description": "记忆列表响应数据"
+      },
+      "MemoriesStatsData": {
+        "properties": {
+          "total_memories": {
+            "type": "integer",
+            "title": "Total Memories",
+            "default": 0
+          },
+          "conversations": {
+            "type": "integer",
+            "title": "Conversations",
+            "default": 0
+          },
+          "observations": {
+            "type": "integer",
+            "title": "Observations",
+            "default": 0
+          },
+          "today_count": {
+            "type": "integer",
+            "title": "Today Count",
+            "default": 0
+          },
+          "storage_size": {
+            "type": "string",
+            "title": "Storage Size",
+            "default": "0 B"
+          }
+        },
+        "type": "object",
+        "title": "MemoriesStatsData",
+        "description": "记忆统计数据"
+      },
       "MemorizeData": {
         "properties": {
           "result": {
@@ -1204,6 +1444,55 @@
         },
         "type": "object",
         "title": "MemorizeRequest"
+      },
+      "MemoryItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "conversation",
+              "system_observation"
+            ],
+            "title": "Type"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "content",
+          "created_at"
+        ],
+        "title": "MemoryItem",
+        "description": "记忆项数据模型"
       },
       "ProactiveAnalyzeData": {
         "properties": {

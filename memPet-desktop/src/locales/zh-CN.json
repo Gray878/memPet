@@ -183,6 +183,27 @@
           "alwaysOnTop": "切换猫咪窗口是否置顶。"
         }
       },
+      "memoryLog": {
+        "title": "记忆管理",
+        "labels": {
+          "statistics": "统计信息",
+          "totalMemories": "总记忆数",
+          "conversations": "对话记录",
+          "observations": "系统观察",
+          "todayCount": "今日新增",
+          "memoryList": "记忆列表",
+          "filterByType": "按类型筛选"
+        },
+        "options": {
+          "allTypes": "全部类型"
+        },
+        "hints": {
+          "noMemories": "暂无记忆数据"
+        },
+        "buttons": {
+          "refresh": "刷新"
+        }
+      },
       "about": {
         "title": "关于",
         "labels": {

@@ -636,6 +636,94 @@ def test_proactive_cooldown():
         print(f"  ✗ 请求失败: {e}")
         return False
 
+def test_memory_log():
+    """测试 GET /memory-log - 记忆日志列表"""
+    print_section("11. GET /memory-log - 记忆日志列表")
+    
+    test_cases = [
+        {
+            "name": "获取全部记忆",
+            "params": {"limit": 20, "offset": 0, "type": "all"}
+        },
+        {
+            "name": "只获取对话记忆",
+            "params": {"limit": 10, "offset": 0, "type": "conversation"}
+        },
+        {
+            "name": "只获取系统观察",
+            "params": {"limit": 10, "offset": 0, "type": "system_observation"}
+        }
+    ]
+    
+    success_count = 0
+    for test in test_cases:
+        print(f"\n测试: {test['name']}")
+        try:
+            response = requests.get(
+                f"{BASE_URL}/memory-log",
+                params=test['params'],
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", {})
+                items = data.get("items", [])
+                total = data.get("total", 0)
+                has_more = data.get("has_more", False)
+                
+                print(f"  ✓ 获取成功")
+                print(f"    记录数: {len(items)}")
+                print(f"    总数: {total}")
+                print(f"    有更多: {has_more}")
+                
+                # 显示前 2 条
+                for i, item in enumerate(items[:2], 1):
+                    item_type = item.get("type", "N/A")
+                    content = item.get("content", "")
+                    created_at = item.get("created_at", "")
+                    print(f"    {i}. [{item_type}] {content[:40]}... ({created_at})")
+                
+                success_count += 1
+            else:
+                print(f"  ✗ 获取失败: {response.status_code}")
+                print(f"     {response.text}")
+        except Exception as e:
+            print(f"  ✗ 请求失败: {e}")
+    
+    print(f"\n记忆日志统计: {success_count}/{len(test_cases)} 成功")
+    return success_count > 0
+
+def test_memory_log_stats():
+    """测试 GET /memory-log/stats - 记忆日志统计"""
+    print_section("12. GET /memory-log/stats - 记忆日志统计")
+    
+    print("\n测试: 获取统计信息")
+    try:
+        response = requests.get(
+            f"{BASE_URL}/memory-log/stats",
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            data = result.get("data", {})
+            
+            print(f"  ✓ 获取成功")
+            print(f"    总记忆数: {data.get('total_memories', 0)}")
+            print(f"    对话记录: {data.get('conversations', 0)}")
+            print(f"    系统观察: {data.get('observations', 0)}")
+            print(f"    今日新增: {data.get('today_count', 0)}")
+            print(f"    存储大小: {data.get('storage_size', '0 B')}")
+            return True
+        else:
+            print(f"  ✗ 获取失败: {response.status_code}")
+            print(f"     {response.text}")
+            return False
+    except Exception as e:
+        print(f"  ✗ 请求失败: {e}")
+        return False
+
 def main():
     print_section("memPet-server 完整 API 测试")
     print(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -680,6 +768,12 @@ def main():
     
     # 10. 冷却状态
     results['proactive_cooldown'] = test_proactive_cooldown()
+    
+    # 11. 记忆日志列表
+    results['memory_log'] = test_memory_log()
+    
+    # 12. 记忆日志统计
+    results['memory_log_stats'] = test_memory_log_stats()
     
     # 总结
     print_section("测试总结")

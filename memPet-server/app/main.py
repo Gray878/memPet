@@ -52,6 +52,9 @@ from app.schemas.api_contract import (
     RetrieveRequest,
     RetrieveData,
     RootData,
+    MemoriesListRequest,
+    MemoriesListData,
+    MemoriesStatsData,
 )
 from app.services.memory_adapter import MemoryAdapter
 from app.services.proactive_helper import ProactiveHelper
@@ -915,6 +918,107 @@ async def proactive_cooldown_reset(payload: ProactiveCooldownResetRequest | None
         )
     except HTTPException:
         raise
+    except Exception as exc:
+        traceback.print_exc()
+        _raise_upstream_http_error(exc)
+        raise HTTPException(status_code=500, detail=f"重置冷却失败：{_extract_error_message(exc)}") from exc
+
+
+@app.get("/memory-log", response_model=ApiEnvelope[MemoriesListData])
+async def list_memory_log(
+    limit: int = 50,
+    offset: int = 0,
+    type: str = "all",
+    start_date: str | None = None,
+    end_date: str | None = None,
+):
+    """
+    查询记忆日志列表（用于记忆管理界面）
+    
+    参数:
+    - limit: 返回数量限制 (1-200, 默认 50)
+    - offset: 偏移量 (默认 0)
+    - type: 记忆类型 (all, conversation, system_observation, 默认 all)
+    - start_date: 开始日期 (可选)
+    - end_date: 结束日期 (可选)
+    
+    返回格式:
+    {
+        "status": "success",
+        "data": {
+            "items": [
+                {
+                    "id": "uuid",
+                    "type": "conversation",
+                    "content": "我今天写了500行代码",
+                    "summary": "用户分享工作进展",
+                    "created_at": "2024-02-27T18:30:00",
+                    "metadata": {}
+                }
+            ],
+            "total": 150,
+            "has_more": true
+        }
+    }
+    """
+    try:
+        result = await adapter.list_memories(
+            limit=min(max(limit, 1), 200),
+            offset=max(offset, 0),
+            memory_type=type,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        
+        return _success(
+            data=result,
+            items=result["items"],
+            total=result["total"],
+            has_more=result["has_more"],
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        traceback.print_exc()
+        _raise_upstream_http_error(exc)
+        raise HTTPException(status_code=500, detail=f"查询记忆日志失败：{_extract_error_message(exc)}") from exc
+
+
+@app.get("/memory-log/stats", response_model=ApiEnvelope[MemoriesStatsData])
+async def get_memory_log_stats():
+    """
+    获取记忆日志统计信息
+    
+    返回格式:
+    {
+        "status": "success",
+        "data": {
+            "total_memories": 150,
+            "conversations": 50,
+            "observations": 100,
+            "today_count": 20,
+            "storage_size": "2.5 MB"
+        }
+    }
+    """
+    try:
+        stats = await adapter.get_memories_stats()
+        
+        return _success(
+            data=stats,
+            total_memories=stats["total_memories"],
+            conversations=stats["conversations"],
+            observations=stats["observations"],
+            today_count=stats["today_count"],
+            storage_size=stats["storage_size"],
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        traceback.print_exc()
+        _raise_upstream_http_error(exc)
+        raise HTTPException(status_code=500, detail=f"获取统计信息失败：{_extract_error_message(exc)}") from exc
+
     except Exception as exc:
         traceback.print_exc()
         _raise_upstream_http_error(exc)

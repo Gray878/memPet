@@ -147,3 +147,38 @@ class ChatData(BaseModel):
     response: str
     memories_used: int
     memory_used: bool
+
+
+class MemoryItem(BaseModel):
+    """记忆项数据模型"""
+    id: str
+    type: Literal["conversation", "system_observation"]
+    content: str
+    summary: str | None = None
+    created_at: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class MemoriesListRequest(BaseModel):
+    """查询记忆列表请求"""
+    limit: int = Field(default=50, ge=1, le=200)
+    offset: int = Field(default=0, ge=0)
+    type: Literal["all", "conversation", "system_observation"] = "all"
+    start_date: str | None = None
+    end_date: str | None = None
+
+
+class MemoriesListData(BaseModel):
+    """记忆列表响应数据"""
+    items: list[MemoryItem] = Field(default_factory=list)
+    total: int = 0
+    has_more: bool = False
+
+
+class MemoriesStatsData(BaseModel):
+    """记忆统计数据"""
+    total_memories: int = 0
+    conversations: int = 0
+    observations: int = 0
+    today_count: int = 0
+    storage_size: str = "0 B"

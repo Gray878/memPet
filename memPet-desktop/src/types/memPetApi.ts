@@ -4,1297 +4,1526 @@
  */
 
 export interface paths {
-  '/memorize': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Memorize
-     * @description 存储记忆（支持对话和系统观察两种类型）
-     *
-     *     对话记忆格式:
-     *     {
-     *         "user_id": "test_user",
-     *         "messages": [
-     *             {
-     *                 "role": "user",
-     *                 "content": "消息内容"
-     *             },
-     *             {
-     *                 "role": "assistant",
-     *                 "content": "回复内容"
-     *             }
-     *         ]
-     *     }
-     *
-     *     系统观察格式:
-     *     {
-     *         "type": "system_observation",
-     *         "observation": {
-     *             "type": "app_switch",
-     *             "app": "VSCode",
-     *             "duration": 3600,
-     *             "timestamp": "2024-02-12T10:00:00"
-     *         }
-     *     }
-     */
-    post: operations['memorize_memorize_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/retrieve': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Retrieve
-     * @description 检索相关记忆（支持对话和主动推理两种场景）
-     *
-     *     对话场景格式:
-     *     {
-     *         "scenario": "conversation",
-     *         "user_id": "test_user",
-     *         "query": "查询文本",
-     *         "limit": 3
-     *     }
-     *
-     *     主动推理场景格式:
-     *     {
-     *         "scenario": "proactive",
-     *         "context": {
-     *             "working_duration": 7200,
-     *             "active_app": "VSCode",
-     *             "fatigue_level": "Tired",
-     *             "is_late_night": false,
-     *             "idle_time": 0
-     *         },
-     *         "limit": 5
-     *     }
-     */
-    post: operations['retrieve_retrieve_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Root
-     * @description 健康检查接口
-     */
-    get: operations['root__get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/health': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Health
-     * @description 健康检查接口（详细版本）
-     */
-    get: operations['health_health_get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/batch/observations': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Batch Observations
-     * @description 批量添加系统观察记录到缓冲区。
-     */
-    post: operations['batch_observations_batch_observations_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/batch/flush': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Batch Flush
-     * @description 强制刷新观察记录缓冲区。
-     */
-    post: operations['batch_flush_batch_flush_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/proactive/analyze': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Proactive Analyze
-     * @description 主动推理分析接口
-     *
-     *     分析当前上下文，生成建议列表
-     *
-     *     请求格式:
-     *     {
-     *         "context": {
-     *             "working_duration": 7200,
-     *             "active_app": "VSCode",
-     *             "fatigue_level": "Tired",
-     *             "is_late_night": false,
-     *             "idle_time": 0,
-     *             "is_work_hours": true,
-     *             "focus_level": "NormalFocus"
-     *         }
-     *     }
-     *
-     *     返回格式:
-     *     {
-     *         "status": "success",
-     *         "suggestions": [
-     *             {
-     *                 "type": "fatigue_reminder",
-     *                 "priority": "high",
-     *                 "message": "检测到疲劳",
-     *                 "reason": "连续工作 2 小时",
-     *                 "action": "建议休息 10 分钟"
-     *             }
-     *         ]
-     *     }
-     */
-    post: operations['proactive_analyze_proactive_analyze_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/proactive/generate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Proactive Generate
-     * @description 生成主动推理消息
-     *
-     *     根据建议和相关记忆，生成自然语言消息
-     *
-     *     请求格式:
-     *     {
-     *         "suggestion": {
-     *             "type": "fatigue_reminder",
-     *             "priority": "high",
-     *             "message": "检测到疲劳",
-     *             "reason": "连续工作 2 小时",
-     *             "action": "建议休息 10 分钟"
-     *         },
-     *         "context": {
-     *             "working_duration": 7200,
-     *             "fatigue_level": "Tired"
-     *         },
-     *         "personality": "friendly",
-     *         "limit": 3
-     *     }
-     *
-     *     返回格式:
-     *     {
-     *         "status": "success",
-     *         "message": "主人已经工作 2 小时了，要不要休息一下眼睛呀？",
-     *         "memories": [...]
-     *     }
-     */
-    post: operations['proactive_generate_proactive_generate_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/proactive/quick': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Proactive Quick
-     * @description 快捷主动推理接口 - 一步完成分析和生成
-     *
-     *     自动分析上下文，选择最高优先级的建议，并生成自然语言消息
-     *
-     *     请求格式:
-     *     {
-     *         "context": {
-     *             "working_duration": 7200,
-     *             "active_app": "VSCode",
-     *             "fatigue_level": "Tired",
-     *             "is_late_night": false,
-     *             "idle_time": 0,
-     *             "is_work_hours": true,
-     *             "focus_level": "NormalFocus"
-     *         },
-     *         "personality": "friendly",
-     *         "limit": 3
-     *     }
-     *
-     *     返回格式:
-     *     {
-     *         "status": "success",
-     *         "message": "主人已经工作 2 小时了，要不要休息一下眼睛呀？",
-     *         "suggestion": {
-     *             "type": "fatigue_reminder",
-     *             "priority": "high",
-     *             "message": "检测到疲劳",
-     *             "reason": "连续工作 2 小时",
-     *             "action": "建议休息 10 分钟"
-     *         },
-     *         "memories": [...]
-     *     }
-     */
-    post: operations['proactive_quick_proactive_quick_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/proactive/cooldown': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Proactive Cooldown
-     * @description 获取冷却状态
-     *
-     *     返回所有建议类型的冷却状态
-     *
-     *     返回格式:
-     *     {
-     *         "status": "success",
-     *         "cooldowns": {
-     *             "fatigue_reminder": {
-     *                 "cooldown_seconds": 1800,
-     *                 "remaining_seconds": 600,
-     *                 "can_trigger": false,
-     *                 "last_triggered": "2024-02-15T10:00:00"
-     *             }
-     *         }
-     *     }
-     */
-    get: operations['proactive_cooldown_proactive_cooldown_get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/proactive/cooldown/reset': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Proactive Cooldown Reset
-     * @description 重置主动推理冷却时间。
-     */
-    post: operations['proactive_cooldown_reset_proactive_cooldown_reset_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/chat': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Chat
-     * @description 对话接口 - 支持记忆增强的 AI 对话
-     *
-     *     请求参数:
-     *     - message: 用户消息
-     *     - history: 对话历史 (可选)
-     *     - personality: 性格类型 (可选: friendly, energetic, professional, tsundere)
-     *     - temperature: 温度参数 (可选, 默认 0.7)
-     *     - max_tokens: 最大 token 数 (可选, 默认 2000)
-     *     - retrieve_memories: 是否检索相关记忆 (可选, 默认 True)
-     *
-     *     返回:
-     *     - response: AI 回复
-     *     - memories_used: 使用的记忆数量
-     */
-    post: operations['chat_chat_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/chat/stream': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Chat Stream
-     * @description 流式对话接口 - 使用 SSE (Server-Sent Events) 返回打字机效果
-     *
-     *     请求参数:
-     *     - message: 用户消息（必需）
-     *     - history: 对话历史（可选）
-     *     - personality: 性格类型（可选: friendly, energetic, professional, tsundere）
-     *     - temperature: 温度参数（可选, 默认 0.7）
-     *     - max_tokens: 最大 token 数（可选, 默认 2000）
-     *     - retrieve_memories: 是否检索相关记忆（可选, 默认 True）
-     *
-     *     SSE 事件类型:
-     *     - metadata: 元数据事件（包含 memories_used, memory_used）
-     *     - chunk: 内容片段（包含 content 字段）
-     *     - complete: 完成事件
-     *     - error: 错误事件
-     *
-     *     示例用法(JavaScript):
-     *         import { fetchEventSource } from '@microsoft/fetch-event-source';
-     *         await fetchEventSource('/chat/stream', {
-     *             method: 'POST',
-     *             headers: { 'Content-Type': 'application/json' },
-     *             body: JSON.stringify({ message: '你好' }),
-     *             onmessage(ev) {
-     *                 console.log(ev.event, ev.data);
-     *             },
-     *         });
-     */
-    post: operations['chat_stream_chat_stream_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
+    "/memorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Memorize
+         * @description 存储记忆（支持对话和系统观察两种类型）
+         *
+         *     对话记忆格式:
+         *     {
+         *         "user_id": "test_user",
+         *         "messages": [
+         *             {
+         *                 "role": "user",
+         *                 "content": "消息内容"
+         *             },
+         *             {
+         *                 "role": "assistant",
+         *                 "content": "回复内容"
+         *             }
+         *         ]
+         *     }
+         *
+         *     系统观察格式:
+         *     {
+         *         "type": "system_observation",
+         *         "observation": {
+         *             "type": "app_switch",
+         *             "app": "VSCode",
+         *             "duration": 3600,
+         *             "timestamp": "2024-02-12T10:00:00"
+         *         }
+         *     }
+         */
+        post: operations["memorize_memorize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/retrieve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retrieve
+         * @description 检索相关记忆（支持对话和主动推理两种场景）
+         *
+         *     对话场景格式:
+         *     {
+         *         "scenario": "conversation",
+         *         "user_id": "test_user",
+         *         "query": "查询文本",
+         *         "limit": 3
+         *     }
+         *
+         *     主动推理场景格式:
+         *     {
+         *         "scenario": "proactive",
+         *         "context": {
+         *             "working_duration": 7200,
+         *             "active_app": "VSCode",
+         *             "fatigue_level": "Tired",
+         *             "is_late_night": false,
+         *             "idle_time": 0
+         *         },
+         *         "limit": 5
+         *     }
+         */
+        post: operations["retrieve_retrieve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Root
+         * @description 健康检查接口
+         */
+        get: operations["root__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health
+         * @description 健康检查接口（详细版本）
+         */
+        get: operations["health_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/batch/observations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Batch Observations
+         * @description 批量添加系统观察记录到缓冲区。
+         */
+        post: operations["batch_observations_batch_observations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/batch/flush": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Batch Flush
+         * @description 强制刷新观察记录缓冲区。
+         */
+        post: operations["batch_flush_batch_flush_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/proactive/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Proactive Analyze
+         * @description 主动推理分析接口
+         *
+         *     分析当前上下文，生成建议列表
+         *
+         *     请求格式:
+         *     {
+         *         "context": {
+         *             "working_duration": 7200,
+         *             "active_app": "VSCode",
+         *             "fatigue_level": "Tired",
+         *             "is_late_night": false,
+         *             "idle_time": 0,
+         *             "is_work_hours": true,
+         *             "focus_level": "NormalFocus"
+         *         }
+         *     }
+         *
+         *     返回格式:
+         *     {
+         *         "status": "success",
+         *         "suggestions": [
+         *             {
+         *                 "type": "fatigue_reminder",
+         *                 "priority": "high",
+         *                 "message": "检测到疲劳",
+         *                 "reason": "连续工作 2 小时",
+         *                 "action": "建议休息 10 分钟"
+         *             }
+         *         ]
+         *     }
+         */
+        post: operations["proactive_analyze_proactive_analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/proactive/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Proactive Generate
+         * @description 生成主动推理消息
+         *
+         *     根据建议和相关记忆，生成自然语言消息
+         *
+         *     请求格式:
+         *     {
+         *         "suggestion": {
+         *             "type": "fatigue_reminder",
+         *             "priority": "high",
+         *             "message": "检测到疲劳",
+         *             "reason": "连续工作 2 小时",
+         *             "action": "建议休息 10 分钟"
+         *         },
+         *         "context": {
+         *             "working_duration": 7200,
+         *             "fatigue_level": "Tired"
+         *         },
+         *         "personality": "friendly",
+         *         "limit": 3
+         *     }
+         *
+         *     返回格式:
+         *     {
+         *         "status": "success",
+         *         "message": "主人已经工作 2 小时了，要不要休息一下眼睛呀？",
+         *         "memories": [...]
+         *     }
+         */
+        post: operations["proactive_generate_proactive_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/proactive/quick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Proactive Quick
+         * @description 快捷主动推理接口 - 一步完成分析和生成
+         *
+         *     自动分析上下文，选择最高优先级的建议，并生成自然语言消息
+         *
+         *     请求格式:
+         *     {
+         *         "context": {
+         *             "working_duration": 7200,
+         *             "active_app": "VSCode",
+         *             "fatigue_level": "Tired",
+         *             "is_late_night": false,
+         *             "idle_time": 0,
+         *             "is_work_hours": true,
+         *             "focus_level": "NormalFocus"
+         *         },
+         *         "personality": "friendly",
+         *         "limit": 3
+         *     }
+         *
+         *     返回格式:
+         *     {
+         *         "status": "success",
+         *         "message": "主人已经工作 2 小时了，要不要休息一下眼睛呀？",
+         *         "suggestion": {
+         *             "type": "fatigue_reminder",
+         *             "priority": "high",
+         *             "message": "检测到疲劳",
+         *             "reason": "连续工作 2 小时",
+         *             "action": "建议休息 10 分钟"
+         *         },
+         *         "memories": [...]
+         *     }
+         */
+        post: operations["proactive_quick_proactive_quick_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/proactive/cooldown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Proactive Cooldown
+         * @description 获取冷却状态
+         *
+         *     返回所有建议类型的冷却状态
+         *
+         *     返回格式:
+         *     {
+         *         "status": "success",
+         *         "cooldowns": {
+         *             "fatigue_reminder": {
+         *                 "cooldown_seconds": 1800,
+         *                 "remaining_seconds": 600,
+         *                 "can_trigger": false,
+         *                 "last_triggered": "2024-02-15T10:00:00"
+         *             }
+         *         }
+         *     }
+         */
+        get: operations["proactive_cooldown_proactive_cooldown_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/proactive/cooldown/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Proactive Cooldown Reset
+         * @description 重置主动推理冷却时间。
+         */
+        post: operations["proactive_cooldown_reset_proactive_cooldown_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memory-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Memory Log
+         * @description 查询记忆日志列表（用于记忆管理界面）
+         *
+         *     参数:
+         *     - limit: 返回数量限制 (1-200, 默认 50)
+         *     - offset: 偏移量 (默认 0)
+         *     - type: 记忆类型 (all, conversation, system_observation, 默认 all)
+         *     - start_date: 开始日期 (可选)
+         *     - end_date: 结束日期 (可选)
+         *
+         *     返回格式:
+         *     {
+         *         "status": "success",
+         *         "data": {
+         *             "items": [
+         *                 {
+         *                     "id": "uuid",
+         *                     "type": "conversation",
+         *                     "content": "我今天写了500行代码",
+         *                     "summary": "用户分享工作进展",
+         *                     "created_at": "2024-02-27T18:30:00",
+         *                     "metadata": {}
+         *                 }
+         *             ],
+         *             "total": 150,
+         *             "has_more": true
+         *         }
+         *     }
+         */
+        get: operations["list_memory_log_memory_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memory-log/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Memory Log Stats
+         * @description 获取记忆日志统计信息
+         *
+         *     返回格式:
+         *     {
+         *         "status": "success",
+         *         "data": {
+         *             "total_memories": 150,
+         *             "conversations": 50,
+         *             "observations": 100,
+         *             "today_count": 20,
+         *             "storage_size": "2.5 MB"
+         *         }
+         *     }
+         */
+        get: operations["get_memory_log_stats_memory_log_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Chat
+         * @description 对话接口 - 支持记忆增强的 AI 对话
+         *
+         *     请求参数:
+         *     - message: 用户消息
+         *     - history: 对话历史 (可选)
+         *     - personality: 性格类型 (可选: friendly, energetic, professional, tsundere)
+         *     - temperature: 温度参数 (可选, 默认 0.7)
+         *     - max_tokens: 最大 token 数 (可选, 默认 2000)
+         *     - retrieve_memories: 是否检索相关记忆 (可选, 默认 True)
+         *
+         *     返回:
+         *     - response: AI 回复
+         *     - memories_used: 使用的记忆数量
+         */
+        post: operations["chat_chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chat/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Chat Stream
+         * @description 流式对话接口 - 使用 SSE (Server-Sent Events) 返回打字机效果
+         *
+         *     请求参数:
+         *     - message: 用户消息（必需）
+         *     - history: 对话历史（可选）
+         *     - personality: 性格类型（可选: friendly, energetic, professional, tsundere）
+         *     - temperature: 温度参数（可选, 默认 0.7）
+         *     - max_tokens: 最大 token 数（可选, 默认 2000）
+         *     - retrieve_memories: 是否检索相关记忆（可选, 默认 True）
+         *
+         *     SSE 事件类型:
+         *     - metadata: 元数据事件（包含 memories_used, memory_used）
+         *     - chunk: 内容片段（包含 content 字段）
+         *     - complete: 完成事件
+         *     - error: 错误事件
+         *
+         *     示例用法(JavaScript):
+         *         import { fetchEventSource } from '@microsoft/fetch-event-source';
+         *         await fetchEventSource('/chat/stream', {
+         *             method: 'POST',
+         *             headers: { 'Content-Type': 'application/json' },
+         *             body: JSON.stringify({ message: '你好' }),
+         *             onmessage(ev) {
+         *                 console.log(ev.event, ev.data);
+         *             },
+         *         });
+         */
+        post: operations["chat_stream_chat_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
-export type webhooks = Record<string, never>
+export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    /** ApiEnvelope[BatchFlushData] */
-    ApiEnvelope_BatchFlushData_: {
-      /**
-       * Status
-       * @default success
-       * @enum {string}
-       */
-      status: 'success' | 'error'
-      data?: components['schemas']['BatchFlushData'] | null
-      /** Error */
-      error?: string | null
-    }
-    /** ApiEnvelope[BatchObservationsData] */
-    ApiEnvelope_BatchObservationsData_: {
-      /**
-       * Status
-       * @default success
-       * @enum {string}
-       */
-      status: 'success' | 'error'
-      data?: components['schemas']['BatchObservationsData'] | null
-      /** Error */
-      error?: string | null
-    }
-    /** ApiEnvelope[ChatData] */
-    ApiEnvelope_ChatData_: {
-      /**
-       * Status
-       * @default success
-       * @enum {string}
-       */
-      status: 'success' | 'error'
-      data?: components['schemas']['ChatData'] | null
-      /** Error */
-      error?: string | null
-    }
-    /** ApiEnvelope[CooldownData] */
-    ApiEnvelope_CooldownData_: {
-      /**
-       * Status
-       * @default success
-       * @enum {string}
-       */
-      status: 'success' | 'error'
-      data?: components['schemas']['CooldownData'] | null
-      /** Error */
-      error?: string | null
-    }
-    /** ApiEnvelope[CooldownResetData] */
-    ApiEnvelope_CooldownResetData_: {
-      /**
-       * Status
-       * @default success
-       * @enum {string}
-       */
-      status: 'success' | 'error'
-      data?: components['schemas']['CooldownResetData'] | null
-      /** Error */
-      error?: string | null
-    }
-    /** ApiEnvelope[HealthData] */
-    ApiEnvelope_HealthData_: {
-      /**
-       * Status
-       * @default success
-       * @enum {string}
-       */
-      status: 'success' | 'error'
-      data?: components['schemas']['HealthData'] | null
-      /** Error */
-      error?: string | null
-    }
-    /** ApiEnvelope[MemorizeData] */
-    ApiEnvelope_MemorizeData_: {
-      /**
-       * Status
-       * @default success
-       * @enum {string}
-       */
-      status: 'success' | 'error'
-      data?: components['schemas']['MemorizeData'] | null
-      /** Error */
-      error?: string | null
-    }
-    /** ApiEnvelope[ProactiveAnalyzeData] */
-    ApiEnvelope_ProactiveAnalyzeData_: {
-      /**
-       * Status
-       * @default success
-       * @enum {string}
-       */
-      status: 'success' | 'error'
-      data?: components['schemas']['ProactiveAnalyzeData'] | null
-      /** Error */
-      error?: string | null
-    }
-    /** ApiEnvelope[ProactiveGenerateData] */
-    ApiEnvelope_ProactiveGenerateData_: {
-      /**
-       * Status
-       * @default success
-       * @enum {string}
-       */
-      status: 'success' | 'error'
-      data?: components['schemas']['ProactiveGenerateData'] | null
-      /** Error */
-      error?: string | null
-    }
-    /** ApiEnvelope[ProactiveQuickData] */
-    ApiEnvelope_ProactiveQuickData_: {
-      /**
-       * Status
-       * @default success
-       * @enum {string}
-       */
-      status: 'success' | 'error'
-      data?: components['schemas']['ProactiveQuickData'] | null
-      /** Error */
-      error?: string | null
-    }
-    /** ApiEnvelope[RetrieveData] */
-    ApiEnvelope_RetrieveData_: {
-      /**
-       * Status
-       * @default success
-       * @enum {string}
-       */
-      status: 'success' | 'error'
-      data?: components['schemas']['RetrieveData'] | null
-      /** Error */
-      error?: string | null
-    }
-    /** ApiEnvelope[RootData] */
-    ApiEnvelope_RootData_: {
-      /**
-       * Status
-       * @default success
-       * @enum {string}
-       */
-      status: 'success' | 'error'
-      data?: components['schemas']['RootData'] | null
-      /** Error */
-      error?: string | null
-    }
-    /** BatchFlushData */
-    BatchFlushData: {
-      /**
-       * Flushed
-       * @default false
-       */
-      flushed: boolean
-    }
-    /** BatchObservationsData */
-    BatchObservationsData: {
-      /**
-       * Accepted
-       * @default 0
-       */
-      accepted: number
-      /**
-       * Buffered
-       * @default 0
-       */
-      buffered: number
-    }
-    /** BatchObservationsRequest */
-    BatchObservationsRequest: {
-      /** Observations */
-      observations?: {
-        [key: string]: unknown
-      }[]
-    }
-    /** ChatData */
-    ChatData: {
-      /** Response */
-      response: string
-      /** Memories Used */
-      memories_used: number
-      /** Memory Used */
-      memory_used: boolean
-    }
-    /** ChatRequest */
-    ChatRequest: {
-      /** Message */
-      message: string
-      /** History */
-      history?: {
-        [key: string]: unknown
-      }[]
-      /**
-       * Personality
-       * @default friendly
-       */
-      personality: string
-      /**
-       * Temperature
-       * @default 0.7
-       */
-      temperature: number
-      /**
-       * Max Tokens
-       * @default 2000
-       */
-      max_tokens: number
-      /**
-       * Retrieve Memories
-       * @default true
-       */
-      retrieve_memories: boolean
-      /** Use Memory */
-      use_memory?: boolean | null
-    }
-    /** ChatStreamRequest */
-    ChatStreamRequest: {
-      /** Message */
-      message: string
-      /** History */
-      history?: {
-        [key: string]: unknown
-      }[]
-      /**
-       * Personality
-       * @default friendly
-       */
-      personality: string
-      /**
-       * Temperature
-       * @default 0.7
-       */
-      temperature: number
-      /**
-       * Max Tokens
-       * @default 2000
-       */
-      max_tokens: number
-      /**
-       * Retrieve Memories
-       * @default true
-       */
-      retrieve_memories: boolean
-      /** Use Memory */
-      use_memory?: boolean | null
-    }
-    /** CooldownData */
-    CooldownData: {
-      /** Cooldowns */
-      cooldowns?: {
-        [key: string]: unknown
-      }
-    }
-    /** CooldownResetData */
-    CooldownResetData: {
-      /** Type */
-      type?: string | null
-      /** Cooldowns */
-      cooldowns?: {
-        [key: string]: unknown
-      }
-    }
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components['schemas']['ValidationError'][]
-    }
-    /** HealthData */
-    HealthData: {
-      /** Server Status */
-      server_status: string
-      /** Version */
-      version: string
-      /** Database */
-      database?: string | null
-      /** Llm */
-      llm?: string | null
-    }
-    /** MemorizeData */
-    MemorizeData: {
-      /** Result */
-      result?: {
-        [key: string]: unknown
-      }
-    }
-    /** MemorizeRequest */
-    MemorizeRequest: {
-      /**
-       * Type
-       * @default conversation
-       * @enum {string}
-       */
-      type: 'conversation' | 'system_observation'
-      /** Messages */
-      messages?: {
-        [key: string]: unknown
-      }[] | null
-      /** Content */
-      content?: {
-        [key: string]: unknown
-      }[] | null
-      /** Observation */
-      observation?: {
-        [key: string]: unknown
-      } | null
-      /** User Id */
-      user_id?: string | null
-    }
-    /** ProactiveAnalyzeData */
-    ProactiveAnalyzeData: {
-      /** Suggestions */
-      suggestions?: {
-        [key: string]: unknown
-      }[]
-    }
-    /** ProactiveAnalyzeRequest */
-    ProactiveAnalyzeRequest: {
-      /** Context */
-      context?: {
-        [key: string]: unknown
-      }
-      /**
-       * Skip Cooldown
-       * @default false
-       */
-      skip_cooldown: boolean
-    }
-    /** ProactiveCooldownResetRequest */
-    ProactiveCooldownResetRequest: {
-      /** Type */
-      type?: string | null
-    }
-    /** ProactiveGenerateData */
-    ProactiveGenerateData: {
-      /** Message */
-      message: string
-      /** Memories */
-      memories?: {
-        [key: string]: unknown
-      }[]
-      /** Prompt */
-      prompt: string
-    }
-    /** ProactiveGenerateRequest */
-    ProactiveGenerateRequest: {
-      /** Suggestion */
-      suggestion?: {
-        [key: string]: unknown
-      }
-      /** Context */
-      context?: {
-        [key: string]: unknown
-      }
-      /**
-       * Personality
-       * @default friendly
-       */
-      personality: string
-      /**
-       * Limit
-       * @default 3
-       */
-      limit: number
-    }
-    /** ProactiveQuickData */
-    ProactiveQuickData: {
-      /** Message */
-      message?: string | null
-      /** Suggestion */
-      suggestion?: {
-        [key: string]: unknown
-      } | null
-      /** Memories */
-      memories?: {
-        [key: string]: unknown
-      }[]
-    }
-    /** ProactiveQuickRequest */
-    ProactiveQuickRequest: {
-      /** Context */
-      context?: {
-        [key: string]: unknown
-      }
-      /**
-       * Personality
-       * @default friendly
-       */
-      personality: string
-      /**
-       * Limit
-       * @default 3
-       */
-      limit: number
-    }
-    /** RetrieveData */
-    RetrieveData: {
-      result?: components['schemas']['RetrieveResultData']
-      /** Items */
-      items?: {
-        [key: string]: unknown
-      }[]
-    }
-    /** RetrieveRequest */
-    RetrieveRequest: {
-      /**
-       * Scenario
-       * @default conversation
-       * @enum {string}
-       */
-      scenario: 'conversation' | 'proactive'
-      /** Query */
-      query?: string | null
-      /** Context */
-      context?: {
-        [key: string]: unknown
-      }
-      /**
-       * Limit
-       * @default 5
-       */
-      limit: number
-      /** User Id */
-      user_id?: string | null
-    }
-    /** RetrieveResultData */
-    RetrieveResultData: {
-      /** Items */
-      items?: {
-        [key: string]: unknown
-      }[]
-      /** Categories */
-      categories?: {
-        [key: string]: unknown
-      }[]
-      /** Resources */
-      resources?: {
-        [key: string]: unknown
-      }[]
-    }
-    /** RootData */
-    RootData: {
-      /** Message */
-      message: string
-      /** Version */
-      version: string
-      /** Server Status */
-      server_status: string
-    }
-    /** ValidationError */
-    ValidationError: {
-      /** Location */
-      loc: (string | number)[]
-      /** Message */
-      msg: string
-      /** Error Type */
-      type: string
-      /** Input */
-      input?: unknown
-      /** Context */
-      ctx?: Record<string, never>
-    }
-  }
-  responses: never
-  parameters: never
-  requestBodies: never
-  headers: never
-  pathItems: never
+    schemas: {
+        /** ApiEnvelope[BatchFlushData] */
+        ApiEnvelope_BatchFlushData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["BatchFlushData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[BatchObservationsData] */
+        ApiEnvelope_BatchObservationsData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["BatchObservationsData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[ChatData] */
+        ApiEnvelope_ChatData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["ChatData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[CooldownData] */
+        ApiEnvelope_CooldownData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["CooldownData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[CooldownResetData] */
+        ApiEnvelope_CooldownResetData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["CooldownResetData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[HealthData] */
+        ApiEnvelope_HealthData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["HealthData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[MemoriesListData] */
+        ApiEnvelope_MemoriesListData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["MemoriesListData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[MemoriesStatsData] */
+        ApiEnvelope_MemoriesStatsData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["MemoriesStatsData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[MemorizeData] */
+        ApiEnvelope_MemorizeData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["MemorizeData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[ProactiveAnalyzeData] */
+        ApiEnvelope_ProactiveAnalyzeData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["ProactiveAnalyzeData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[ProactiveGenerateData] */
+        ApiEnvelope_ProactiveGenerateData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["ProactiveGenerateData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[ProactiveQuickData] */
+        ApiEnvelope_ProactiveQuickData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["ProactiveQuickData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[RetrieveData] */
+        ApiEnvelope_RetrieveData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["RetrieveData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiEnvelope[RootData] */
+        ApiEnvelope_RootData_: {
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+            data?: components["schemas"]["RootData"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** BatchFlushData */
+        BatchFlushData: {
+            /**
+             * Flushed
+             * @default false
+             */
+            flushed: boolean;
+        };
+        /** BatchObservationsData */
+        BatchObservationsData: {
+            /**
+             * Accepted
+             * @default 0
+             */
+            accepted: number;
+            /**
+             * Buffered
+             * @default 0
+             */
+            buffered: number;
+        };
+        /** BatchObservationsRequest */
+        BatchObservationsRequest: {
+            /** Observations */
+            observations?: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** ChatData */
+        ChatData: {
+            /** Response */
+            response: string;
+            /** Memories Used */
+            memories_used: number;
+            /** Memory Used */
+            memory_used: boolean;
+        };
+        /** ChatRequest */
+        ChatRequest: {
+            /** Message */
+            message: string;
+            /** History */
+            history?: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Personality
+             * @default friendly
+             */
+            personality: string;
+            /**
+             * Temperature
+             * @default 0.7
+             */
+            temperature: number;
+            /**
+             * Max Tokens
+             * @default 2000
+             */
+            max_tokens: number;
+            /**
+             * Retrieve Memories
+             * @default true
+             */
+            retrieve_memories: boolean;
+            /** Use Memory */
+            use_memory?: boolean | null;
+        };
+        /** ChatStreamRequest */
+        ChatStreamRequest: {
+            /** Message */
+            message: string;
+            /** History */
+            history?: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Personality
+             * @default friendly
+             */
+            personality: string;
+            /**
+             * Temperature
+             * @default 0.7
+             */
+            temperature: number;
+            /**
+             * Max Tokens
+             * @default 2000
+             */
+            max_tokens: number;
+            /**
+             * Retrieve Memories
+             * @default true
+             */
+            retrieve_memories: boolean;
+            /** Use Memory */
+            use_memory?: boolean | null;
+        };
+        /** CooldownData */
+        CooldownData: {
+            /** Cooldowns */
+            cooldowns?: {
+                [key: string]: unknown;
+            };
+        };
+        /** CooldownResetData */
+        CooldownResetData: {
+            /** Type */
+            type?: string | null;
+            /** Cooldowns */
+            cooldowns?: {
+                [key: string]: unknown;
+            };
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HealthData */
+        HealthData: {
+            /** Server Status */
+            server_status: string;
+            /** Version */
+            version: string;
+            /** Database */
+            database?: string | null;
+            /** Llm */
+            llm?: string | null;
+        };
+        /**
+         * MemoriesListData
+         * @description 记忆列表响应数据
+         */
+        MemoriesListData: {
+            /** Items */
+            items?: components["schemas"]["MemoryItem"][];
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /**
+             * Has More
+             * @default false
+             */
+            has_more: boolean;
+        };
+        /**
+         * MemoriesStatsData
+         * @description 记忆统计数据
+         */
+        MemoriesStatsData: {
+            /**
+             * Total Memories
+             * @default 0
+             */
+            total_memories: number;
+            /**
+             * Conversations
+             * @default 0
+             */
+            conversations: number;
+            /**
+             * Observations
+             * @default 0
+             */
+            observations: number;
+            /**
+             * Today Count
+             * @default 0
+             */
+            today_count: number;
+            /**
+             * Storage Size
+             * @default 0 B
+             */
+            storage_size: string;
+        };
+        /** MemorizeData */
+        MemorizeData: {
+            /** Result */
+            result?: {
+                [key: string]: unknown;
+            };
+        };
+        /** MemorizeRequest */
+        MemorizeRequest: {
+            /**
+             * Type
+             * @default conversation
+             * @enum {string}
+             */
+            type: "conversation" | "system_observation";
+            /** Messages */
+            messages?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Content */
+            content?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Observation */
+            observation?: {
+                [key: string]: unknown;
+            } | null;
+            /** User Id */
+            user_id?: string | null;
+        };
+        /**
+         * MemoryItem
+         * @description 记忆项数据模型
+         */
+        MemoryItem: {
+            /** Id */
+            id: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "conversation" | "system_observation";
+            /** Content */
+            content: string;
+            /** Summary */
+            summary?: string | null;
+            /** Created At */
+            created_at: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** ProactiveAnalyzeData */
+        ProactiveAnalyzeData: {
+            /** Suggestions */
+            suggestions?: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** ProactiveAnalyzeRequest */
+        ProactiveAnalyzeRequest: {
+            /** Context */
+            context?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Skip Cooldown
+             * @default false
+             */
+            skip_cooldown: boolean;
+        };
+        /** ProactiveCooldownResetRequest */
+        ProactiveCooldownResetRequest: {
+            /** Type */
+            type?: string | null;
+        };
+        /** ProactiveGenerateData */
+        ProactiveGenerateData: {
+            /** Message */
+            message: string;
+            /** Memories */
+            memories?: {
+                [key: string]: unknown;
+            }[];
+            /** Prompt */
+            prompt: string;
+        };
+        /** ProactiveGenerateRequest */
+        ProactiveGenerateRequest: {
+            /** Suggestion */
+            suggestion?: {
+                [key: string]: unknown;
+            };
+            /** Context */
+            context?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Personality
+             * @default friendly
+             */
+            personality: string;
+            /**
+             * Limit
+             * @default 3
+             */
+            limit: number;
+        };
+        /** ProactiveQuickData */
+        ProactiveQuickData: {
+            /** Message */
+            message?: string | null;
+            /** Suggestion */
+            suggestion?: {
+                [key: string]: unknown;
+            } | null;
+            /** Memories */
+            memories?: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** ProactiveQuickRequest */
+        ProactiveQuickRequest: {
+            /** Context */
+            context?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Personality
+             * @default friendly
+             */
+            personality: string;
+            /**
+             * Limit
+             * @default 3
+             */
+            limit: number;
+        };
+        /** RetrieveData */
+        RetrieveData: {
+            result?: components["schemas"]["RetrieveResultData"];
+            /** Items */
+            items?: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** RetrieveRequest */
+        RetrieveRequest: {
+            /**
+             * Scenario
+             * @default conversation
+             * @enum {string}
+             */
+            scenario: "conversation" | "proactive";
+            /** Query */
+            query?: string | null;
+            /** Context */
+            context?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Limit
+             * @default 5
+             */
+            limit: number;
+            /** User Id */
+            user_id?: string | null;
+        };
+        /** RetrieveResultData */
+        RetrieveResultData: {
+            /** Items */
+            items?: {
+                [key: string]: unknown;
+            }[];
+            /** Categories */
+            categories?: {
+                [key: string]: unknown;
+            }[];
+            /** Resources */
+            resources?: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** RootData */
+        RootData: {
+            /** Message */
+            message: string;
+            /** Version */
+            version: string;
+            /** Server Status */
+            server_status: string;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
+        };
+    };
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
-export type $defs = Record<string, never>
+export type $defs = Record<string, never>;
 export interface operations {
-  memorize_memorize_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['MemorizeRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ApiEnvelope_MemorizeData_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  retrieve_retrieve_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['RetrieveRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ApiEnvelope_RetrieveData_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  root__get: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ApiEnvelope_RootData_']
-        }
-      }
-    }
-  }
-  health_health_get: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ApiEnvelope_HealthData_']
-        }
-      }
-    }
-  }
-  batch_observations_batch_observations_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['BatchObservationsRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ApiEnvelope_BatchObservationsData_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  batch_flush_batch_flush_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ApiEnvelope_BatchFlushData_']
-        }
-      }
-    }
-  }
-  proactive_analyze_proactive_analyze_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ProactiveAnalyzeRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ApiEnvelope_ProactiveAnalyzeData_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  proactive_generate_proactive_generate_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ProactiveGenerateRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ApiEnvelope_ProactiveGenerateData_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  proactive_quick_proactive_quick_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ProactiveQuickRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ApiEnvelope_ProactiveQuickData_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  proactive_cooldown_proactive_cooldown_get: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ApiEnvelope_CooldownData_']
-        }
-      }
-    }
-  }
-  proactive_cooldown_reset_proactive_cooldown_reset_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: {
-      content: {
-        'application/json': components['schemas']['ProactiveCooldownResetRequest'] | null
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ApiEnvelope_CooldownResetData_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  chat_chat_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ChatRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ApiEnvelope_ChatData_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  chat_stream_chat_stream_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ChatStreamRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
+    memorize_memorize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemorizeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_MemorizeData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retrieve_retrieve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetrieveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_RetrieveData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    root__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_RootData_"];
+                };
+            };
+        };
+    };
+    health_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_HealthData_"];
+                };
+            };
+        };
+    };
+    batch_observations_batch_observations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchObservationsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_BatchObservationsData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batch_flush_batch_flush_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_BatchFlushData_"];
+                };
+            };
+        };
+    };
+    proactive_analyze_proactive_analyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProactiveAnalyzeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_ProactiveAnalyzeData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    proactive_generate_proactive_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProactiveGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_ProactiveGenerateData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    proactive_quick_proactive_quick_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProactiveQuickRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_ProactiveQuickData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    proactive_cooldown_proactive_cooldown_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_CooldownData_"];
+                };
+            };
+        };
+    };
+    proactive_cooldown_reset_proactive_cooldown_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ProactiveCooldownResetRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_CooldownResetData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_memory_log_memory_log_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                type?: string;
+                start_date?: string | null;
+                end_date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_MemoriesListData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_memory_log_stats_memory_log_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_MemoriesStatsData_"];
+                };
+            };
+        };
+    };
+    chat_chat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiEnvelope_ChatData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chat_stream_chat_stream_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatStreamRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
 }

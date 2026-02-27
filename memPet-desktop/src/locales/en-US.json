@@ -183,6 +183,27 @@
           "alwaysOnTop": "Toggle whether the cat window stays on top."
         }
       },
+      "memoryLog": {
+        "title": "Memory Management",
+        "labels": {
+          "statistics": "Statistics",
+          "totalMemories": "Total Memories",
+          "conversations": "Conversations",
+          "observations": "Observations",
+          "todayCount": "Today's Count",
+          "memoryList": "Memory List",
+          "filterByType": "Filter by Type"
+        },
+        "options": {
+          "allTypes": "All Types"
+        },
+        "hints": {
+          "noMemories": "No memories available"
+        },
+        "buttons": {
+          "refresh": "Refresh"
+        }
+      },
       "about": {
         "title": "About",
         "labels": {

@@ -380,3 +380,202 @@ class MemoryAdapter:
     async def force_flush(self) -> None:
         """强制刷新缓冲区（用于应用关闭时）"""
         await self._flush_buffer()
+
+    async def list_memories(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+        memory_type: str = "all",
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        查询记忆列表
+        """
+        try:
+            import os
+            import asyncpg
+            
+            host = os.getenv("DATABASE_HOST", "127.0.0.1")
+            port = int(os.getenv("DATABASE_PORT", "5432"))
+            user = os.getenv("DATABASE_USER", "postgres")
+            password = os.getenv("DATABASE_PASSWORD", "")
+            database = os.getenv("DATABASE_NAME", "memu")
+            
+            conn = await asyncpg.connect(
+                host=host,
+                port=port,
+                user=user,
+                password=password,
+                database=database,
+                timeout=10
+            )
+            
+            try:
+                # 构建查询
+                query = "SELECT id, memory_type, summary, created_at, extra FROM memory_items WHERE 1=1"
+                params = []
+                param_idx = 1
+                
+                # 类型筛选: conversation 对应 profile, system_observation 对应 event
+                if memory_type == "conversation":
+                    query += f" AND memory_type = ${param_idx}"
+                    params.append("profile")
+                    param_idx += 1
+                elif memory_type == "system_observation":
+                    query += f" AND memory_type = ${param_idx}"
+                    params.append("event")
+                    param_idx += 1
+                
+                # 日期筛选
+                if start_date:
+                    query += f" AND created_at >= ${param_idx}"
+                    params.append(start_date)
+                    param_idx += 1
+                if end_date:
+                    query += f" AND created_at <= ${param_idx}"
+                    params.append(end_date)
+                    param_idx += 1
+                
+                # 排序和分页
+                query += f" ORDER BY created_at DESC LIMIT ${param_idx} OFFSET ${param_idx + 1}"
+                params.extend([limit, offset])
+                
+                rows = await conn.fetch(query, *params)
+                
+                # 统计总数
+                count_query = "SELECT COUNT(*) as total FROM memory_items WHERE 1=1"
+                count_params = []
+                count_idx = 1
+                
+                if memory_type == "conversation":
+                    count_query += f" AND memory_type = ${count_idx}"
+                    count_params.append("profile")
+                    count_idx += 1
+                elif memory_type == "system_observation":
+                    count_query += f" AND memory_type = ${count_idx}"
+                    count_params.append("event")
+                    count_idx += 1
+                
+                if start_date:
+                    count_query += f" AND created_at >= ${count_idx}"
+                    count_params.append(start_date)
+                    count_idx += 1
+                if end_date:
+                    count_query += f" AND created_at <= ${count_idx}"
+                    count_params.append(end_date)
+                    count_idx += 1
+                
+                total_row = await conn.fetchrow(count_query, *count_params)
+                total = total_row['total'] if total_row else 0
+                
+                # 转换数据
+                items = []
+                for row in rows:
+                    # 映射类型: profile -> conversation, event -> system_observation
+                    item_type = "conversation" if row['memory_type'] == "profile" else "system_observation"
+                    
+                    items.append({
+                        "id": str(row['id']),
+                        "type": item_type,
+                        "content": row['summary'] if row['summary'] else "",
+                        "summary": row['summary'],
+                        "created_at": row['created_at'].isoformat() if row['created_at'] else "",
+                        "metadata": row['extra'] if row['extra'] else {}
+                    })
+                
+                return {
+                    "items": items,
+                    "total": total,
+                    "has_more": (offset + limit) < total,
+                }
+                
+            finally:
+                await conn.close()
+                
+        except Exception as e:
+            print(f"查询失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "items": [],
+                "total": 0,
+                "has_more": False,
+            }
+
+    async def get_memories_stats(self) -> dict[str, Any]:
+        """
+        获取记忆统计信息
+        """
+        try:
+            import os
+            import asyncpg
+            from datetime import datetime
+            
+            host = os.getenv("DATABASE_HOST", "127.0.0.1")
+            port = int(os.getenv("DATABASE_PORT", "5432"))
+            user = os.getenv("DATABASE_USER", "postgres")
+            password = os.getenv("DATABASE_PASSWORD", "")
+            database = os.getenv("DATABASE_NAME", "memu")
+            
+            conn = await asyncpg.connect(
+                host=host,
+                port=port,
+                user=user,
+                password=password,
+                database=database,
+                timeout=10
+            )
+            
+            try:
+                # 总数
+                total_row = await conn.fetchrow("SELECT COUNT(*) as total FROM memory_items")
+                total_memories = total_row['total'] if total_row else 0
+                
+                # 对话记录 (profile)
+                conv_row = await conn.fetchrow("SELECT COUNT(*) as total FROM memory_items WHERE memory_type = 'profile'")
+                conversations = conv_row['total'] if conv_row else 0
+                
+                # 系统观察 (event)
+                obs_row = await conn.fetchrow("SELECT COUNT(*) as total FROM memory_items WHERE memory_type = 'event'")
+                observations = obs_row['total'] if obs_row else 0
+                
+                # 今日新增
+                today = datetime.now().date()
+                today_row = await conn.fetchrow(
+                    "SELECT COUNT(*) as total FROM memory_items WHERE DATE(created_at) = $1",
+                    today
+                )
+                today_count = today_row['total'] if today_row else 0
+                
+                # 存储大小估算
+                storage_bytes = total_memories * 1024
+                if storage_bytes < 1024:
+                    storage_size = f"{storage_bytes} B"
+                elif storage_bytes < 1024 * 1024:
+                    storage_size = f"{storage_bytes / 1024:.1f} KB"
+                else:
+                    storage_size = f"{storage_bytes / (1024 * 1024):.1f} MB"
+                
+                return {
+                    "total_memories": total_memories,
+                    "conversations": conversations,
+                    "observations": observations,
+                    "today_count": today_count,
+                    "storage_size": storage_size,
+                }
+                
+            finally:
+                await conn.close()
+                
+        except Exception as e:
+            print(f"统计失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "total_memories": 0,
+                "conversations": 0,
+                "observations": 0,
+                "today_count": 0,
+                "storage_size": "0 B",
+            }

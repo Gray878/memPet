@@ -8,6 +8,7 @@ import About from './components/about/index.vue'
 import Ai from './components/ai/index.vue'
 import Cat from './components/cat/index.vue'
 import General from './components/general/index.vue'
+import MemoryLog from './components/memory-log/index.vue'
 import Model from './components/model/index.vue'
 import Shortcut from './components/shortcut/index.vue'
 
@@ -17,7 +18,7 @@ import { useAppStore } from '@/stores/app'
 import { useGeneralStore } from '@/stores/general'
 import { isMac } from '@/utils/platform'
 
-type MenuKey = 'cat' | 'ai' | 'general' | 'model' | 'shortcut' | 'about'
+type MenuKey = 'cat' | 'ai' | 'general' | 'model' | 'shortcut' | 'memoryLog' | 'about'
 
 const { createTray } = useTray()
 const appStore = useAppStore()
@@ -64,6 +65,12 @@ const menus = computed(() => [
     label: t('pages.preference.shortcut.title'),
     icon: 'i-solar:keyboard-bold',
     component: Shortcut,
+  },
+  {
+    key: 'memoryLog',
+    label: t('pages.preference.memoryLog.title'),
+    icon: 'i-solar:database-bold',
+    component: MemoryLog,
   },
   {
     key: 'about',
