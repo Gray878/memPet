@@ -130,11 +130,14 @@ watch([() => catStore.window.scale, modelSize], async ([scale, size]) => {
   if (!size) return
 
   const { width, height } = size
+  
+  // 为气泡预留顶部空间（70px）
+  const bubbleSpace = 70
 
   appWindow.setSize(
     new PhysicalSize({
       width: Math.round(width * (scale / 100)),
-      height: Math.round(height * (scale / 100)),
+      height: Math.round((height + bubbleSpace) * (scale / 100)),
     }),
   )
 }, { immediate: true })
@@ -215,7 +218,7 @@ function handleMouseMove(event: MouseEvent) {
 <template>
   <div
     v-show="isMounted"
-    class="relative size-screen overflow-hidden"
+    class="relative size-screen"
     :class="{ '-scale-x-100': catStore.model.mirror }"
     :style="{
       opacity: catStore.window.opacity / 100,
@@ -225,38 +228,46 @@ function handleMouseMove(event: MouseEvent) {
     @mousedown="handleMouseDown"
     @mousemove="handleMouseMove"
   >
-    <img
-      v-if="backgroundImagePath"
-      class="absolute inset-0 size-full object-cover"
-      :src="backgroundImagePath"
-    >
-
-    <canvas
-      id="live2dCanvas"
-      class="absolute inset-0 size-full"
-    />
-
-    <img
-      v-for="path in modelStore.pressedKeys"
-      :key="path"
-      class="absolute inset-0 size-full object-cover"
-      :src="convertFileSrc(path)"
-    >
-
-    <div
-      v-show="resizing"
-      class="absolute inset-0 z-50 flex items-center justify-center bg-black"
-    >
-      <span class="text-center text-[10vw] text-white">
-        {{ $t('pages.main.hints.redrawing') }}
-      </span>
+    <!-- 气泡容器 - 固定在顶部 70px 区域 -->
+    <div class="absolute left-0 right-0 top-0 z-50 h-[70px] flex items-center justify-center pointer-events-none">
+      <SpeechBubble
+        :duration="8000"
+        :message="bubbleMessage"
+        :suggestion="proactiveStore.quickSuggestion"
+        :show-details="true"
+        :always-visible="true"
+        position="top"
+      />
     </div>
 
-    <!-- Speech bubble for proactive messages and chat replies -->
-    <SpeechBubble
-      :duration="6000"
-      :message="bubbleMessage"
-      position="top"
-    />
+    <!-- 宠物内容区域 - 从 70px 开始向下 -->
+    <div class="absolute left-0 right-0 bottom-0" style="top: 70px">
+      <img
+        v-if="backgroundImagePath"
+        class="absolute inset-0 size-full object-cover"
+        :src="backgroundImagePath"
+      >
+
+      <canvas
+        id="live2dCanvas"
+        class="absolute inset-0 size-full"
+      />
+
+      <img
+        v-for="path in modelStore.pressedKeys"
+        :key="path"
+        class="absolute inset-0 size-full object-cover"
+        :src="convertFileSrc(path)"
+      >
+
+      <div
+        v-show="resizing"
+        class="absolute inset-0 z-50 flex items-center justify-center bg-black"
+      >
+        <span class="text-center text-[10vw] text-white">
+          {{ $t('pages.main.hints.redrawing') }}
+        </span>
+      </div>
+    </div>
   </div>
 </template>
