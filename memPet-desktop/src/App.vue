@@ -6,7 +6,7 @@ import { useEventListener } from '@vueuse/core'
 import { ConfigProvider, theme } from 'ant-design-vue'
 import { isString } from 'es-toolkit'
 import isURL from 'is-url'
-import { onMounted, watch } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterView } from 'vue-router'
 
@@ -20,6 +20,7 @@ import { useAppStore } from './stores/app'
 import { useCatStore } from './stores/cat'
 import { useGeneralStore } from './stores/general'
 import { useModelStore } from './stores/model'
+import { useObservationQueueStore } from './stores/observationQueue'
 import { useShortcutStore } from './stores/shortcut.ts'
 
 const { generateColorVars } = useThemeVars()
@@ -28,6 +29,7 @@ const modelStore = useModelStore()
 const catStore = useCatStore()
 const generalStore = useGeneralStore()
 const shortcutStore = useShortcutStore()
+const observationQueueStore = useObservationQueueStore()
 const appWindow = getCurrentWebviewWindow()
 const { isRestored, restoreState } = useWindowState()
 const { darkAlgorithm, defaultAlgorithm } = theme
@@ -46,6 +48,14 @@ onMounted(async () => {
   await generalStore.init()
   await shortcutStore.$tauri.start()
   await restoreState()
+
+  // 启动观察队列，开始采集用户操作数据
+  await observationQueueStore.start()
+})
+
+onUnmounted(async () => {
+  // 应用关闭时停止观察队列并刷新缓冲区
+  await observationQueueStore.stop()
 })
 
 watch(() => generalStore.appearance.language, (value) => {
