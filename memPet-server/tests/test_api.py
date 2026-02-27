@@ -327,9 +327,121 @@ def test_chat_stream():
         print(f"  ✗ 请求失败: {e}")
         return False
 
+def test_batch_observations():
+    """测试 POST /batch/observations - 批量添加观察记录"""
+    print_section("5. POST /batch/observations - 批量添加观察记录")
+    
+    test_cases = [
+        {
+            "name": "应用切换记录",
+            "data": {
+                "observations": [
+                    {
+                        "type": "app_switch",
+                        "app": "VSCode",
+                        "duration": 1800,
+                        "timestamp": datetime.now().isoformat()
+                    },
+                    {
+                        "type": "app_switch",
+                        "app": "Chrome",
+                        "duration": 600,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                ]
+            }
+        },
+        {
+            "name": "混合观察记录",
+            "data": {
+                "observations": [
+                    {
+                        "type": "idle_detected",
+                        "minutes": 35,
+                        "timestamp": datetime.now().isoformat()
+                    },
+                    {
+                        "type": "late_night_work",
+                        "hour": 23,
+                        "timestamp": datetime.now().isoformat()
+                    },
+                    {
+                        "type": "app_switch",
+                        "app": "PyCharm",
+                        "duration": 3600,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                ]
+            }
+        }
+    ]
+    
+    success_count = 0
+    for test in test_cases:
+        print(f"\n测试: {test['name']}")
+        try:
+            response = requests.post(
+                f"{BASE_URL}/batch/observations",
+                json=test['data'],
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", {})
+                accepted = data.get("accepted", 0)
+                buffered = data.get("buffered", 0)
+                
+                print(f"  ✓ 批量添加成功")
+                print(f"    接受: {accepted} 条")
+                print(f"    缓冲区: {buffered} 条")
+                success_count += 1
+            else:
+                print(f"  ✗ 批量添加失败: {response.status_code}")
+                print(f"     {response.text}")
+        except Exception as e:
+            print(f"  ✗ 请求失败: {e}")
+    
+    print(f"\n批量添加统计: {success_count}/{len(test_cases)} 成功")
+    return success_count > 0
+
+def test_batch_flush():
+    """测试 POST /batch/flush - 刷新观察记录缓冲区"""
+    print_section("6. POST /batch/flush - 刷新观察记录缓冲区")
+    
+    print("\n测试: 刷新缓冲区")
+    try:
+        response = requests.post(
+            f"{BASE_URL}/batch/flush",
+            json={},
+            timeout=30  # 刷新可能需要向量化处理
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            data = result.get("data", {})
+            flushed = data.get("flushed", False)
+            
+            print(f"  ✓ 刷新成功")
+            print(f"    状态: {'已刷新' if flushed else '无数据'}")
+            
+            # 等待向量化处理
+            if flushed:
+                print("\n等待观察记录处理（向量化需要时间）...")
+                time.sleep(3)
+            
+            return True
+        else:
+            print(f"  ✗ 刷新失败: {response.status_code}")
+            print(f"     {response.text}")
+            return False
+    except Exception as e:
+        print(f"  ✗ 请求失败: {e}")
+        return False
+
 def test_proactive_analyze():
     """测试 POST /proactive/analyze - 主动推理分析"""
-    print_section("5. POST /proactive/analyze - 主动推理分析")
+    print_section("7. POST /proactive/analyze - 主动推理分析")
     
     test_cases = [
         {
@@ -396,7 +508,7 @@ def test_proactive_analyze():
 
 def test_proactive_generate(suggestion=None):
     """测试 POST /proactive/generate - 生成主动推理消息"""
-    print_section("6. POST /proactive/generate - 生成主动推理消息")
+    print_section("8. POST /proactive/generate - 生成主动推理消息")
     
     # 如果没有传入建议，使用默认的
     if not suggestion:
@@ -446,7 +558,7 @@ def test_proactive_generate(suggestion=None):
 
 def test_proactive_quick():
     """测试 POST /proactive/quick - 快捷主动推理"""
-    print_section("7. POST /proactive/quick - 快捷主动推理")
+    print_section("9. POST /proactive/quick - 快捷主动推理")
     
     test_data = {
         "context": {
@@ -495,7 +607,7 @@ def test_proactive_quick():
 
 def test_proactive_cooldown():
     """测试 GET /proactive/cooldown - 获取冷却状态"""
-    print_section("8. GET /proactive/cooldown - 获取冷却状态")
+    print_section("10. GET /proactive/cooldown - 获取冷却状态")
     
     print("\n测试: 获取冷却状态")
     try:
@@ -550,17 +662,23 @@ def main():
     # 4. 流式对话
     results['chat_stream'] = test_chat_stream()
     
-    # 6. 主动推理分析
+    # 5. 批量添加观察记录
+    results['batch_observations'] = test_batch_observations()
+    
+    # 6. 刷新观察记录缓冲区
+    results['batch_flush'] = test_batch_flush()
+    
+    # 7. 主动推理分析
     analyze_success, suggestion = test_proactive_analyze()
     results['proactive_analyze'] = analyze_success
     
-    # 7. 生成主动推理消息（使用 analyze 返回的建议）
+    # 8. 生成主动推理消息（使用 analyze 返回的建议）
     results['proactive_generate'] = test_proactive_generate(suggestion)
     
-    # 8. 快捷主动推理
+    # 9. 快捷主动推理
     results['proactive_quick'] = test_proactive_quick()
     
-    # 9. 冷却状态
+    # 10. 冷却状态
     results['proactive_cooldown'] = test_proactive_cooldown()
     
     # 总结
