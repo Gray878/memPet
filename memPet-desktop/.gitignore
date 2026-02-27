@@ -21,3 +21,7 @@ target
 *.njsproj
 *.sln
 *.sw?
+
+pnpm-lock.yaml
+Cargo.toml
+/src-tauri/binaries/*

@@ -6,11 +6,12 @@ const projectRoot = resolve(fileURLToPath(new URL('.', import.meta.url)), '..')
 const binariesDir = resolve(projectRoot, 'src-tauri', 'binaries')
 
 const targets = [
-  'aarch64-apple-darwin',
-  'x86_64-apple-darwin',
+  { name: 'aarch64-apple-darwin', type: 'unix' },
+  { name: 'x86_64-apple-darwin', type: 'unix' },
+  { name: 'x86_64-pc-windows-msvc', type: 'windows' },
 ]
 
-const launcher = [
+const unixLauncher = [
   '#!/usr/bin/env bash',
   'set -euo pipefail',
   '',
@@ -58,11 +59,86 @@ const launcher = [
   '',
 ].join('\n')
 
+const windowsLauncher = [
+  '@echo off',
+  'setlocal enabledelayedexpansion',
+  '',
+  'set "SELF_DIR=%~dp0"',
+  'set "SELF_DIR=%SELF_DIR:~0,-1%"',
+  '',
+  'if defined MEMPET_SERVER_DIR (',
+  '  if exist "%MEMPET_SERVER_DIR%\\app\\main.py" (',
+  '    set "SERVER_DIR=%MEMPET_SERVER_DIR%"',
+  '    goto :found',
+  '  )',
+  ')',
+  '',
+  'if exist "%SELF_DIR%\\..\\Resources\\backend-runtime\\memPet-server\\app\\main.py" (',
+  '  set "SERVER_DIR=%SELF_DIR%\\..\\Resources\\backend-runtime\\memPet-server"',
+  '  goto :found',
+  ')',
+  '',
+  'if exist "%SELF_DIR%\\..\\backend-runtime\\memPet-server\\app\\main.py" (',
+  '  set "SERVER_DIR=%SELF_DIR%\\..\\backend-runtime\\memPet-server"',
+  '  goto :found',
+  ')',
+  '',
+  'if exist "%SELF_DIR%\\..\\..\\memPet-server\\app\\main.py" (',
+  '  set "SERVER_DIR=%SELF_DIR%\\..\\..\\memPet-server"',
+  '  goto :found',
+  ')',
+  '',
+  'if exist "%SELF_DIR%\\..\\..\\..\\..\\memPet-server\\app\\main.py" (',
+  '  set "SERVER_DIR=%SELF_DIR%\\..\\..\\..\\..\\memPet-server"',
+  '  goto :found',
+  ')',
+  '',
+  'echo [memPet-sidecar] memPet-server runtime not found >&2',
+  'exit /b 1',
+  '',
+  ':found',
+  'cd /d "%SERVER_DIR%"',
+  '',
+  'if not defined UV_CACHE_DIR (',
+  '  set "UV_CACHE_DIR=%TEMP%\\mempet-uv-cache"',
+  ')',
+  'if not exist "%UV_CACHE_DIR%" mkdir "%UV_CACHE_DIR%" 2>nul',
+  '',
+  'if exist "%SERVER_DIR%\\.venv\\Scripts\\python.exe" (',
+  '  "%SERVER_DIR%\\.venv\\Scripts\\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8000',
+  '  exit /b !errorlevel!',
+  ')',
+  '',
+  'if exist "%SERVER_DIR%\\.venv\\Scripts\\uv.exe" (',
+  '  "%SERVER_DIR%\\.venv\\Scripts\\uv.exe" run --no-sync fastapi run app/main.py --host 127.0.0.1 --port 8000',
+  '  exit /b !errorlevel!',
+  ')',
+  '',
+  'where uv >nul 2>&1',
+  'if !errorlevel! equ 0 (',
+  '  uv run --no-sync fastapi run app/main.py --host 127.0.0.1 --port 8000',
+  '  exit /b !errorlevel!',
+  ')',
+  '',
+  'where python >nul 2>&1',
+  'if !errorlevel! equ 0 (',
+  '  python -m uvicorn app.main:app --host 127.0.0.1 --port 8000',
+  '  exit /b !errorlevel!',
+  ')',
+  '',
+  'echo [memPet-sidecar] python runtime not found >&2',
+  'exit /b 1',
+].join('\r\n')
+
 mkdirSync(binariesDir, { recursive: true })
 
 for (const target of targets) {
-  const filePath = resolve(binariesDir, `memPet-server-${target}`)
+  const launcher = target.type === 'windows' ? windowsLauncher : unixLauncher
+  const extension = target.type === 'windows' ? '.exe' : ''
+  const filePath = resolve(binariesDir, `memPet-server-${target.name}${extension}`)
   writeFileSync(filePath, launcher, 'utf8')
-  chmodSync(filePath, 0o755)
+  if (target.type === 'unix') {
+    chmodSync(filePath, 0o755)
+  }
   console.log(`✓ prepared sidecar launcher: ${filePath}`)
 }
