@@ -120,13 +120,6 @@ function handleDismiss(event: Event) {
             </svg>
           </button>
         </div>
-        
-        <!-- 气泡尾巴（指向宠物） -->
-        <div class="absolute left-1/2 top-full -translate-x-1/2">
-          <svg width="16" height="8" viewBox="0 0 16 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 8C8 8 4 4 0 0H16C12 4 8 8 8 8Z" fill="white" />
-          </svg>
-        </div>
       </div>
     </div>
   </Transition>

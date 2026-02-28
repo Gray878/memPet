@@ -29,6 +29,7 @@ import { useGeneralStore } from '@/stores/general.ts'
 import { useModelStore } from '@/stores/model'
 import { useObservationQueueStore } from '@/stores/observationQueue'
 import { useProactiveStore } from '@/stores/proactive'
+import { useAiStore } from '@/stores/ai'
 import { isImage } from '@/utils/is'
 import { join } from '@/utils/path'
 import { clearObject } from '@/utils/shared'
@@ -49,6 +50,7 @@ const backendStore = useBackendStore()
 const chatStore = useChatStore()
 const proactiveStore = useProactiveStore()
 const observationQueueStore = useObservationQueueStore()
+const aiStore = useAiStore()
 
 // Bubble message: show latest assistant reply or proactive message
 const bubbleMessage = computed(() => {
@@ -64,6 +66,9 @@ const bubbleMessage = computed(() => {
   return null
 })
 
+// 主动推理定时器
+let proactiveTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(async () => {
   startListening()
   await observationQueueStore.start()
@@ -72,12 +77,83 @@ onMounted(async () => {
 
   await backendStore.refreshStatus().catch(() => undefined)
   await backendStore.refreshHealth().catch(() => undefined)
+
+  // 启动主动推理定时器
+  const startProactiveTimer = () => {
+    // 清理旧定时器
+    if (proactiveTimer) {
+      clearInterval(proactiveTimer)
+      proactiveTimer = null
+    }
+
+    // 如果未启用，直接返回
+    if (!aiStore.proactiveEnabled) {
+      return
+    }
+
+    const intervalMs = aiStore.proactiveInterval * 1000
+
+    proactiveTimer = setInterval(async () => {
+      if (!aiStore.proactiveEnabled) {
+        return
+      }
+
+      try {
+        // 获取真实上下文
+        const context = observationQueueStore.getContextSnapshot()
+        proactiveStore.updateContext(context)
+        
+        // 调用主动推理接口，使用配置的参数
+        await proactiveStore.runQuick(
+          aiStore.personality,
+          aiStore.proactiveMemoryLimit
+        )
+      } catch (error) {
+        console.error('[主动推理] 调用失败:', error)
+      }
+    }, intervalMs)
+  }
+
+  // 启动定时器
+  startProactiveTimer()
+
+  // 监听配置变化，重启定时器
+  watch(
+    () => [aiStore.proactiveEnabled, aiStore.proactiveInterval] as const,
+    () => {
+      startProactiveTimer()
+    }
+  )
+
+  // 首次执行（10秒后）
+  setTimeout(async () => {
+    if (!aiStore.proactiveEnabled) {
+      return
+    }
+
+    try {
+      const context = observationQueueStore.getContextSnapshot()
+      proactiveStore.updateContext(context)
+      await proactiveStore.runQuick(
+        aiStore.personality,
+        aiStore.proactiveMemoryLimit
+      )
+    } catch (error) {
+      console.error('[主动推理] 首次调用失败:', error)
+    }
+  }, 10000)
 })
 
 onUnmounted(() => {
   handleDestroy()
   backendStore.stopWatchdog()
   void observationQueueStore.stop()
+  
+  // 清理定时器
+  if (proactiveTimer) {
+    clearInterval(proactiveTimer)
+    proactiveTimer = null
+  }
 })
 
 const debouncedResize = useDebounceFn(async () => {
@@ -130,14 +206,11 @@ watch([() => catStore.window.scale, modelSize], async ([scale, size]) => {
   if (!size) return
 
   const { width, height } = size
-  
-  // 为气泡预留顶部空间（70px）
-  const bubbleSpace = 70
 
   appWindow.setSize(
     new PhysicalSize({
       width: Math.round(width * (scale / 100)),
-      height: Math.round((height + bubbleSpace) * (scale / 100)),
+      height: Math.round(height * (scale / 100)),
     }),
   )
 }, { immediate: true })
@@ -213,6 +286,8 @@ function handleMouseMove(event: MouseEvent) {
 
   catStore.window.scale = round(nextScale)
 }
+
+
 </script>
 
 <template>
@@ -228,10 +303,10 @@ function handleMouseMove(event: MouseEvent) {
     @mousedown="handleMouseDown"
     @mousemove="handleMouseMove"
   >
-    <!-- 气泡容器 - 固定在顶部 70px 区域 -->
-    <div class="absolute left-0 right-0 top-0 z-50 h-[70px] flex items-center justify-center pointer-events-none">
+    <!-- 气泡容器 - 左上角 -->
+    <div class="absolute left-1 top-1 z-50 pointer-events-none">
       <SpeechBubble
-        :duration="8000"
+        :duration="10000"
         :message="bubbleMessage"
         :suggestion="proactiveStore.quickSuggestion"
         :show-details="true"
@@ -240,8 +315,8 @@ function handleMouseMove(event: MouseEvent) {
       />
     </div>
 
-    <!-- 宠物内容区域 - 从 70px 开始向下 -->
-    <div class="absolute left-0 right-0 bottom-0" style="top: 70px">
+    <!-- 宠物内容区域 -->
+    <div class="absolute inset-0">
       <img
         v-if="backgroundImagePath"
         class="absolute inset-0 size-full object-cover"

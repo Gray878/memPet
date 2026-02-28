@@ -34,7 +34,7 @@ export const useProactiveStore = defineStore('proactive', () => {
     }
   }
 
-  async function runQuick(personality = 'friendly', limit = 3) {
+  async function runQuick(personality = 'friendly', limit = 3, skipCooldown = false) {
     loading.value = true
     lastError.value = ''
     try {
@@ -42,12 +42,14 @@ export const useProactiveStore = defineStore('proactive', () => {
         context: context.value as Record<string, unknown>,
         personality,
         limit,
+        skip_cooldown: skipCooldown,
       })
 
       const data = response.data
       if (!data) {
         throw new Error('后端返回空数据')
       }
+      
       quickMessage.value = data.message || null
       quickSuggestion.value = (data.suggestion || null) as ProactiveSuggestion | null
       memories.value = data.memories || []

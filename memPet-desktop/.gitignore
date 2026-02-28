@@ -24,3 +24,4 @@ target
 
 pnpm-lock.yaml
 /src-tauri/binaries/*
+Cargo.toml

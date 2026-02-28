@@ -1017,6 +1017,11 @@ export interface components {
              * @default 3
              */
             limit: number;
+            /**
+             * Skip Cooldown
+             * @default false
+             */
+            skip_cooldown?: boolean;
         };
         /** RetrieveData */
         RetrieveData: {

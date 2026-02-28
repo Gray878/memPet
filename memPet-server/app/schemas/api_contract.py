@@ -51,6 +51,7 @@ class ProactiveQuickRequest(BaseModel):
     context: dict[str, Any] = Field(default_factory=dict)
     personality: str = "friendly"
     limit: int = 3
+    skip_cooldown: bool = False
 
 
 class ProactiveCooldownResetRequest(BaseModel):

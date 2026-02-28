@@ -15,13 +15,18 @@ import { useI18n } from 'vue-i18n'
 
 import { memPetApi } from '@/services/memPetApi'
 import { useAiStore } from '@/stores/ai'
+import { useProactiveStore } from '@/stores/proactive'
 
 const { t } = useI18n()
 const aiStore = useAiStore()
+const proactiveStore = useProactiveStore()
 
 const testingConnection = ref(false)
 const testResult = ref<'success' | 'error' | null>(null)
 const testMessage = ref('')
+const triggeringProactive = ref(false)
+const proactiveTestResult = ref<'success' | 'error' | null>(null)
+const proactiveTestMessage = ref('')
 
 const providerOptions = [
   { label: 'OpenAI', value: 'openai' },
@@ -71,6 +76,52 @@ async function handleTestConnection() {
     testMessage.value = error instanceof Error ? error.message : t('pages.preference.ai.hints.connectionFailed')
   } finally {
     testingConnection.value = false
+  }
+}
+
+// 手动触发主动推理（用于测试）
+async function handleManualTrigger() {
+  triggeringProactive.value = true
+  proactiveTestResult.value = null
+  proactiveTestMessage.value = ''
+  
+  try {
+    // 使用模拟的上下文数据进行测试
+    const testContext = {
+      working_duration: 7200, // 2小时
+      active_app: 'VSCode',
+      fatigue_level: 'Tired',
+      is_late_night: false,
+      idle_time: 0,
+      is_work_hours: true,
+      focus_level: 'NormalFocus',
+    }
+    
+    proactiveStore.updateContext(testContext)
+    
+    // 等待接口调用完成（跳过冷却时间，方便调试）
+    await proactiveStore.runQuick(aiStore.personality, aiStore.proactiveMemoryLimit, true)
+    
+    // 检查是否有错误
+    if (proactiveStore.lastError) {
+      proactiveTestResult.value = 'error'
+      proactiveTestMessage.value = proactiveStore.lastError
+      return
+    }
+    
+    // 检查是否生成了消息
+    if (proactiveStore.quickMessage) {
+      proactiveTestResult.value = 'success'
+      proactiveTestMessage.value = '触发成功，请查看宠物气泡'
+    } else {
+      proactiveTestResult.value = 'error'
+      proactiveTestMessage.value = '未生成消息（可能处于冷却期或当前状态无需提醒）'
+    }
+  } catch (error) {
+    proactiveTestResult.value = 'error'
+    proactiveTestMessage.value = error instanceof Error ? error.message : '触发失败'
+  } finally {
+    triggeringProactive.value = false
   }
 }
 </script>
@@ -253,6 +304,24 @@ async function handleTestConnection() {
             size="small"
             :step="10"
           />
+        </div>
+
+        <div class="flex items-center justify-end gap-2">
+          <span
+            v-if="proactiveTestResult"
+            class="text-xs"
+            :class="proactiveTestResult === 'success' ? 'text-green-500' : 'text-red-500'"
+          >
+            {{ proactiveTestMessage }}
+          </span>
+          <Button
+            :disabled="!aiStore.proactiveEnabled"
+            :loading="triggeringProactive"
+            size="small"
+            @click="handleManualTrigger"
+          >
+            手动触发
+          </Button>
         </div>
       </div>
     </section>

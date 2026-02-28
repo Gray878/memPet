@@ -814,9 +814,10 @@ async def proactive_quick(payload: ProactiveQuickRequest):
         context = payload.context
         personality = payload.personality
         limit = payload.limit
+        skip_cooldown = payload.skip_cooldown
         
         # 第一步：分析上下文，生成建议
-        suggestions = proactive_helper.analyze_context(context)
+        suggestions = proactive_helper.analyze_context(context, check_cooldown=not skip_cooldown)
         
         if not suggestions:
             return _success(
