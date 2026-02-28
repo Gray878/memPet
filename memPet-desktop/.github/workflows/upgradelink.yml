@@ -14,7 +14,7 @@ jobs:
       - name: Send a request to UpgradeLink
         uses: toolsetlink/upgradelink-action@v5
         with:
-          source-url: 'https://github.com/ayangweb/BongoCat/releases/latest/download/latest.json'
+          source-url: 'https://github.com/Gray878/memUPet/releases/latest/download/latest.json'
           access-key: ${{ secrets.UPGRADE_LINK_ACCESS_KEY }}
           tauri-key: ${{ secrets.UPGRADE_LINK_TAURI_KEY }}
           github-token: ${{ secrets.RELEASE_TOKEN }}

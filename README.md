@@ -7,8 +7,7 @@
 ```
 memPet/
 ├── memPet-desktop/     # 桌面应用（Tauri + Vue 3）
-├── memPet-server/      # 后端服务（FastAPI + PostgreSQL）
-└── docs/               # 项目文档
+└── memPet-server/      # 后端服务（FastAPI + PostgreSQL）
 ```
 
 ## 快速开始

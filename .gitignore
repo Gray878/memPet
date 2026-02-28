@@ -159,6 +159,8 @@ cython_debug/
 
 # other
 /memu
+/memPet-UI
+/docs
 
 # BongoCat 参考项目（克隆用于参考）
 bongocat-reference/
